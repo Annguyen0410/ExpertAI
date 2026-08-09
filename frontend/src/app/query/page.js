@@ -1,0 +1,230 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Bot, Scale, DollarSign, Heart, Send, ArrowLeft, Loader, FileText, Sparkles, History, Trash2, TriangleAlert } from "lucide-react";
+import { useToast } from "../../context/ToastContext";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+function getToken() {
+  if (typeof window !== "undefined") return localStorage.getItem("token");
+  return null;
+}
+
+const DRAFT_KEY = "expertai_draft";
+
+const domains = [
+  { id: "legal", label: "Legal", icon: Scale, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
+  { id: "financial", label: "Financial", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+  { id: "medical", label: "Medical", icon: Heart, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/30" },
+];
+
+const TEMPLATES = [
+  { domain: "legal", label: "Review a Lease", prompt: "I need to review a residential lease agreement. What are the key clauses I should look out for, and what are common red flags?" },
+  { domain: "legal", label: "NDA Review", prompt: "I received a Non-Disclosure Agreement to sign. Can you help me understand the key terms and what to watch out for?" },
+  { domain: "legal", label: "Tenant Rights", prompt: "My landlord is withholding my security deposit. What are my rights and what steps should I take?" },
+  { domain: "financial", label: "Budget Planning", prompt: "Help me create a monthly budget. I earn $X per month and want to save more effectively." },
+  { domain: "financial", label: "Tax Tips", prompt: "I'm a freelancer filing taxes for the first time. What deductions can I claim and what should I know?" },
+  { domain: "financial", label: "Debt Strategy", prompt: "I have credit card debt and a student loan. What's the best strategy to pay them off?" },
+  { domain: "medical", label: "Symptom Info", prompt: "I've been having headaches and fatigue for two weeks. What could this be and when should I see a doctor?" },
+  { domain: "medical", label: "Medication Questions", prompt: "What questions should I ask my doctor when starting a new medication?" },
+  { domain: "medical", label: "Wellness Tips", prompt: "What are the key components of a healthy lifestyle including diet, exercise, and sleep?" },
+];
+
+export default function NewQuery() {
+  const router = useRouter();
+  const { addToast } = useToast();
+  const [selectedDomain, setSelectedDomain] = useState(null);
+  const [content, setContent] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [savedDraft, setSavedDraft] = useState(null);
+
+  useEffect(() => {
+    if (!getToken()) { router.push("/signin"); return; }
+    const draft = localStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        setSavedDraft(parsed);
+        if (!content) {
+          setContent(parsed.content || "");
+          setSelectedDomain(parsed.domain || null);
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    if (content) {
+      const timer = setTimeout(() => {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ content, domain: selectedDomain, savedAt: Date.now() }));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [content, selectedDomain]);
+
+  function restoreDraft() {
+    if (savedDraft) {
+      setContent(savedDraft.content || "");
+      setSelectedDomain(savedDraft.domain || null);
+      addToast("Draft restored", "info");
+    }
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setSavedDraft(null);
+    setContent("");
+    addToast("Draft cleared", "info");
+  }
+
+  function applyTemplate(t) {
+    setContent(t.prompt);
+    setSelectedDomain(t.domain);
+    setShowTemplates(false);
+    addToast(`Template applied: ${t.label}`, "info");
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!content.trim()) return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await fetch(`${API}/agents/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ domain: selectedDomain, content }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 402) { addToast("Free tier limit reached!", "error"); router.push("/pricing"); return; }
+        throw new Error(data.detail || "Query failed");
+      }
+      setResult(data);
+      localStorage.removeItem(DRAFT_KEY);
+      setSavedDraft(null);
+      addToast("Query submitted successfully", "success");
+    } catch (err) {
+      setError(err.message);
+      addToast(err.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950">
+      <header className="flex items-center gap-4 px-6 py-4 border-b border-slate-800">
+        <a href="/dashboard" className="text-slate-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></a>
+        <Bot className="w-6 h-6 text-indigo-400" />
+        <span className="font-bold">New Query</span>
+        <div className="flex-1" />
+        {savedDraft && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-amber-400 flex items-center gap-1"><History className="w-3 h-3" /> Draft saved</span>
+            <button onClick={restoreDraft} className="text-xs text-indigo-400 hover:text-indigo-300">Restore</button>
+            <button onClick={clearDraft} className="text-xs text-slate-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+          </div>
+        )}
+      </header>
+
+      <main className="max-w-3xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Ask a Professional Question</h1>
+            <p className="text-slate-400 mt-1">Get AI-powered guidance on legal, financial, or medical topics.</p>
+          </div>
+          <button onClick={() => setShowTemplates(!showTemplates)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium transition-all">
+            <Sparkles className="w-4 h-4 text-amber-400" /> Templates
+          </button>
+        </div>
+
+        {showTemplates && (
+          <div className="mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-400" /> Quick Templates</h3>
+              <button onClick={() => setShowTemplates(false)} className="text-xs text-slate-500 hover:text-white">Close</button>
+            </div>
+            <div className="grid md:grid-cols-3 gap-2">
+              {TEMPLATES.map((t, i) => {
+                const domain = domains.find((d) => d.id === t.domain);
+                const Icon = domain?.icon || Bot;
+                return (
+                  <button key={i} onClick={() => applyTemplate(t)}
+                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 text-left transition-all group">
+                    <Icon className={`w-4 h-4 mt-0.5 ${domain?.color || "text-slate-400"}`} />
+                    <div>
+                      <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{t.label}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{t.prompt.substring(0, 60)}...</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
+          <button onClick={() => setSelectedDomain(null)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${selectedDomain === null ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-300" : "bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600"}`}>
+            <Bot className="w-4 h-4" /> Auto-Detect
+          </button>
+          {domains.map((d) => {
+            const Icon = d.icon;
+            const isSelected = selectedDomain === d.id;
+            return (
+              <button key={d.id} onClick={() => setSelectedDomain(d.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${isSelected ? `${d.bg} ${d.border} ${d.color}` : "bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600"}`}>
+                <Icon className="w-4 h-4" /> {d.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <textarea value={content} onChange={(e) => setContent(e.target.value)}
+            placeholder="Describe your question in detail. For example: 'I need to review a residential lease agreement I received from my landlord. What key clauses should I look out for?'"
+            rows={6} className="w-full px-5 py-4 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <p className="text-xs text-slate-500">{selectedDomain ? `Querying ${selectedDomain} agent` : "AI will detect the domain automatically"}</p>
+              {content.length > 0 && <span className="text-xs text-slate-600">{content.length} chars</span>}
+            </div>
+            <button type="submit" disabled={loading || !content.trim()}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
+              {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {loading ? "Processing..." : "Submit"}
+            </button>
+          </div>
+        </form>
+
+        {error && <div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl">{error}</div>}
+
+        {result && (
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center gap-3 text-sm text-slate-400">
+              <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${result.domain === "legal" ? "bg-blue-500/10 text-blue-400" : result.domain === "financial" ? "bg-emerald-500/10 text-emerald-400" : result.domain === "medical" ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"}`}>
+                {result.domain}
+              </span>
+              {result.complexity_score && <span>Complexity: {(result.complexity_score * 100).toFixed(0)}%</span>}
+              {result.is_escalated && <span className="text-amber-400 flex items-center gap-1"><TriangleAlert className="w-4 h-4" /> Escalated: {result.escalation_reason}</span>}
+            </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+              <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{result.response}</div>
+            </div>
+            <a href={`/query/${result.query_id}`} className="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300">
+              View full conversation →
+            </a>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,15 @@
+node_modules/
+.venv/
+.next/
+.qodo/
+__pycache__/
+*.pyc
+# Never commit local credentials at any level of the project. Keep the
+# deliberately non-secret .env.example templates tracked instead.
+.env
+.env.local
+**/.env
+**/.env.local
+*.db
+data/
+.DS_Store

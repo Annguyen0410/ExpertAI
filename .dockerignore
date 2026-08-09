@@ -1,0 +1,17 @@
+# Keep credentials, local databases, build caches, and editor state out of
+# container build contexts. Runtime configuration is injected by Compose/Cloud
+# Run rather than copied into an image.
+.git
+.qodo
+.env
+.env.*
+**/.env
+**/.env.*
+**/__pycache__
+**/*.pyc
+**/*.db
+data
+frontend/node_modules
+frontend/.next
+backend/expertai.db
+README.md
