@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from config import (
+    CORS_ORIGINS,
     CSRF_COOKIE_NAME,
     IS_PRODUCTION,
     RATE_LIMIT_MAX_KEYS,
@@ -133,7 +134,19 @@ def check_rate_limit(
 
 
 def verify_csrf(request: Request) -> None:
-    """Double-submit protection for state-changing cookie-auth refresh/logout calls."""
+    """Boundary integrity check for state-changing cookie-auth refresh/logout calls.
+
+    Two modes are accepted:
+    - A browser request from a configured frontend origin matches by Origin
+      header. This keeps cookie refresh working when the UI and API live on
+      different origins (the cookie's script-reading path cannot double-submit).
+    - Everything else must satisfy double-submit (cookie value echoed in the
+      X-CSRF-Token header), which remains the protection for same-origin clients
+      and non-browser automation.
+    """
+    origin = request.headers.get("origin")
+    if origin and origin.rstrip("/") in {candidate.rstrip("/") for candidate in CORS_ORIGINS}:
+        return
     cookie = request.cookies.get(CSRF_COOKIE_NAME)
     header = request.headers.get("x-csrf-token")
     if not cookie or not header or not hmac.compare_digest(cookie, header):
