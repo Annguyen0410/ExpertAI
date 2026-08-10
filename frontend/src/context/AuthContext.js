@@ -115,8 +115,17 @@ export function AuthProvider({ children }) {
       return fetch(`${API}${endpoint}`, { ...options, headers, credentials: "include" });
     };
 
-    let response = await request(token);
-    if (response.status === 401) {
+    // Public auth endpoints return 401 for bad credentials — never treat that as
+    // an expired access token or the error detail is lost in a refresh loop.
+    const isPublicAuth = typeof endpoint === "string" && (
+      endpoint.startsWith("/auth/signin")
+      || endpoint.startsWith("/auth/signup")
+      || endpoint.startsWith("/auth/forgot-password")
+      || endpoint.startsWith("/auth/reset-password")
+    );
+
+    let response = await request(isPublicAuth ? null : token);
+    if (!isPublicAuth && response.status === 401) {
       const refreshedToken = await refreshAccessToken();
       if (refreshedToken) response = await request(refreshedToken);
     }
@@ -141,6 +150,20 @@ export function AuthProvider({ children }) {
     return data;
   }, [apiCall, persistSession]);
 
+  const forgotPassword = useCallback(async (email) => {
+    return apiCall("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+  }, [apiCall]);
+
+  const resetPassword = useCallback(async (tokenValue, newPassword) => {
+    return apiCall("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token: tokenValue, new_password: newPassword }),
+    });
+  }, [apiCall]);
+
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = readStoredUser();
@@ -157,9 +180,11 @@ export function AuthProvider({ children }) {
     loading,
     signup,
     signin,
+    forgotPassword,
+    resetPassword,
     logout,
     apiCall,
-  }), [apiCall, loading, logout, signin, signup, token, user]);
+  }), [apiCall, forgotPassword, loading, logout, resetPassword, signin, signup, token, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

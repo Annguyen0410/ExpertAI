@@ -76,23 +76,29 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-950 flex">
       <div className={`fixed inset-0 bg-black/50 z-20 md:hidden ${sidebarOpen ? "block" : "hidden"}`} onClick={() => setSidebarOpen(false)} />
-      <aside className={`fixed md:sticky top-0 left-0 z-30 h-full w-64 bg-slate-900 border-r border-slate-800 p-6 transform transition-transform md:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+      <aside className={`fixed md:sticky top-0 left-0 z-30 h-screen w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col transform transition-transform md:transform-none ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2"><Bot className="w-6 h-6 text-indigo-400" /><span className="font-bold">ExpertAI</span></div>
           <button className="md:hidden" onClick={() => setSidebarOpen(false)}><X className="w-5 h-5" /></button>
         </div>
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1 overflow-y-auto">
           <a href="/query" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 font-medium"><Plus className="w-5 h-5" /> New Query</a>
           <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><Bot className="w-5 h-5" /> My Queries</a>
           <a href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><Settings className="w-5 h-5" /> Settings</a>
           <a href="/pricing" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><DollarSign className="w-5 h-5" /> Subscription</a>
-          <div className="pt-4 border-t border-slate-800 mt-4">
-            <p className="text-xs text-slate-500 px-4 mb-2 uppercase tracking-wider">Operations</p>
-            <a href="/operations" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><Activity className="w-5 h-5" /> Live Dashboard</a>
-            <a href="/professional" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><Briefcase className="w-5 h-5" /> Professional Portal</a>
-          </div>
+          {(user?.role === "admin" || user?.role === "professional") && (
+            <div className="pt-4 border-t border-slate-800 mt-4">
+              <p className="text-xs text-slate-500 px-4 mb-2 uppercase tracking-wider">Operations</p>
+              {user?.role === "admin" && (
+                <a href="/operations" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><Activity className="w-5 h-5" /> Live Dashboard</a>
+              )}
+              {(user?.role === "professional" || user?.role === "admin") && (
+                <a href="/professional" className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"><Briefcase className="w-5 h-5" /> Professional Portal</a>
+              )}
+            </div>
+          )}
         </nav>
-        <div className="absolute bottom-6 left-6 right-6">
+        <div className="pt-4 border-t border-slate-800 mt-4">
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800 mb-2">
             <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center text-sm font-medium">{user?.name?.[0] || "U"}</div>
             <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{user?.name || "User"}</p><p className="text-xs text-slate-500 truncate">{user?.email || ""}</p></div>

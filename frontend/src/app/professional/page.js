@@ -32,8 +32,15 @@ export default function ProfessionalDashboard() {
     if (!token) { router.push("/signin"); return; }
     try {
       const u = JSON.parse(localStorage.getItem("user") || "{}");
+      if (u?.role !== "professional" && u?.role !== "admin") {
+        router.replace("/dashboard");
+        return;
+      }
       setUser(u);
-    } catch {}
+    } catch {
+      router.replace("/dashboard");
+      return;
+    }
     fetchData();
   }, []);
 
@@ -44,6 +51,10 @@ export default function ProfessionalDashboard() {
         authorizedFetch(`${API}/professional/escalations/available`),
         authorizedFetch(`${API}/professional/escalations/stats`),
       ]);
+      if (eRes.status === 403 || aRes.status === 403 || sRes.status === 403) {
+        router.replace("/dashboard");
+        return;
+      }
       if (eRes.ok) setEscalations(await eRes.json());
       if (aRes.ok) setAvailable(await aRes.json());
       if (sRes.ok) setStats(await sRes.json());

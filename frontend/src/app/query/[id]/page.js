@@ -85,7 +85,12 @@ export default function QueryDetail() {
       setMessages((current) => [...current, { role: "assistant", content: data.content }]);
       await loadQuery();
     } catch (err) {
-      setError(err.message || "Your follow-up could not be sent.");
+      const message = err.message || "Your follow-up could not be sent.";
+      if (/upgrade|free plan|follow-up/i.test(message)) {
+        setError(`${message} Upgrade at Pricing to continue.`);
+      } else {
+        setError(message);
+      }
       setMessages((current) => current.slice(0, -1));
       setInput(content);
     } finally {
@@ -139,7 +144,25 @@ export default function QueryDetail() {
   }
 
   function exportConversation() {
-    const text = messages.map((message) => `[${message.role.toUpperCase()}] ${message.content}`).join("\n\n---\n\n");
+    const disclaimer =
+      "AI guidance is informational. For urgent, complex, or high-stakes situations, seek qualified professional help.";
+    const header = [
+      "ExpertAI Conversation Export",
+      `Title: ${query?.title || "Untitled"}`,
+      `Domain: ${query?.domain || "general"}`,
+      `Exported: ${new Date().toISOString()}`,
+      `Created: ${query?.created_at || "unknown"}`,
+      `Escalated: ${query?.is_escalated ? "yes" : "no"}`,
+      typeof query?.complexity_score === "number"
+        ? `Complexity: ${Math.round(query.complexity_score * 100)}%`
+        : null,
+      `Disclaimer: ${disclaimer}`,
+      "",
+      "----------",
+      "",
+    ].filter(Boolean).join("\n");
+    const body = messages.map((message) => `[${message.role.toUpperCase()}] ${message.content}`).join("\n\n---\n\n");
+    const text = `${header}${body}\n\n----------\n${disclaimer}\n`;
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");

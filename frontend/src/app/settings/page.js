@@ -25,6 +25,7 @@ export default function Settings() {
   const [name, setName] = useState(user.name || "");
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
   const [usage, setUsage] = useState(null);
   const [billing, setBilling] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -76,6 +77,9 @@ export default function Settings() {
         const stored = getStoredUser();
         stored.name = name;
         localStorage.setItem("user", JSON.stringify(stored));
+      } else {
+        const d = await res.json().catch(() => null);
+        addToast(extractApiError(d) || "Failed to update profile", "error");
       }
     } catch { addToast("Failed to update profile", "error"); }
     setSaving(false);
@@ -84,6 +88,11 @@ export default function Settings() {
   async function changePassword(e) {
     e.preventDefault();
     if (newPw.length < 12) { addToast("Password must be at least 12 characters", "error"); return; }
+    if (!/[A-Z]/.test(newPw) || !/[a-z]/.test(newPw) || !/\d/.test(newPw)) {
+      addToast("Password must include uppercase, lowercase, and a number", "error");
+      return;
+    }
+    if (newPw !== confirmPw) { addToast("New password and confirmation do not match", "error"); return; }
     setSaving(true);
     try {
       const res = await authorizedFetch(`${API}/auth/change-password`, {
@@ -91,7 +100,7 @@ export default function Settings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ current_password: oldPw, new_password: newPw }),
       });
-      if (res.ok) { addToast("Password changed", "success"); setOldPw(""); setNewPw(""); }
+      if (res.ok) { addToast("Password changed", "success"); setOldPw(""); setNewPw(""); setConfirmPw(""); }
       else { const d = await res.json(); addToast(extractApiError(d) || "Failed", "error"); }
     } catch { addToast("Failed to change password", "error"); }
     setSaving(false);
@@ -173,6 +182,11 @@ export default function Settings() {
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">New Password</label>
                 <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p className="text-xs text-slate-500 mt-1">Must be 12+ chars with uppercase, lowercase, and number</p>
+              </div>
+              <div>
+                <label className="text-sm text-slate-400 mb-1 block">Confirm New Password</label>
+                <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <button type="submit" disabled={saving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
                 {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -227,12 +241,18 @@ export default function Settings() {
         {tab === "billing" && (
           <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><DollarSign className="w-5 h-5 text-indigo-400" /> Billing History</h2>
-            <div className="flex items-center gap-3 mb-6 p-4 bg-slate-800/50 rounded-xl">
+            <div className="flex items-center gap-3 mb-6 p-4 bg-slate-800/50 rounded-xl flex-wrap">
               <span className="text-sm text-slate-400">Current plan:</span>
               <span className="font-semibold capitalize">{billing?.subscription_tier || "free"}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${billing?.subscription_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
-                {billing?.subscription_active ? "Active" : "Inactive"}
-              </span>
+              {(billing?.subscription_tier || "free") === "free" ? (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                  Free plan — {usage?.queries_remaining ?? 0} of {usage?.quota_limit ?? 3} questions left
+                </span>
+              ) : (
+                <span className={`text-xs px-2 py-0.5 rounded-full ${billing?.subscription_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
+                  {billing?.subscription_active ? "Active" : "Inactive"}
+                </span>
+              )}
               {billing?.subscription_active && (
                 <button
                   type="button"

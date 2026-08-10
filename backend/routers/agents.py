@@ -420,6 +420,26 @@ def chat_query(
     if not query:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Query not found")
 
+    # Free-tier follow-ups must use the same paywall as new queries. Without this
+    # check, exhausted accounts could keep calling the model indefinitely.
+    if not _usage_allowed(user, db):
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Your free plan includes three queries. Upgrade to continue.",
+        )
+    if user.subscription_tier == SubscriptionTier.free and not user.subscription_active:
+        prior_user_messages = (
+            db.query(Message)
+            .filter(Message.query_id == query_id, Message.role == "user")
+            .count()
+        )
+        # Original question + two follow-ups per conversation on the free plan.
+        if prior_user_messages >= 3:
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="Your free plan includes two follow-ups per question. Upgrade to continue.",
+            )
+
     safe_content = req.content
     db.add(Message(query_id=query_id, role="user", content=safe_content))
     db.flush()

@@ -43,6 +43,8 @@ export default function NewQuery() {
   const [error, setError] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
   const [savedDraft, setSavedDraft] = useState(null);
+  const [usage, setUsage] = useState(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   useEffect(() => {
     if (!getToken()) { router.push("/signin"); return; }
@@ -57,6 +59,9 @@ export default function NewQuery() {
         }
       } catch {}
     }
+    authorizedFetch(`${API}/auth/usage`)
+      .then(async (res) => { if (res.ok) setUsage(await res.json()); })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -96,6 +101,7 @@ export default function NewQuery() {
     setLoading(true);
     setError("");
     setResult(null);
+    setShowUpgrade(false);
     try {
       const res = await authorizedFetch(`${API}/agents/query`, {
         method: "POST",
@@ -104,7 +110,12 @@ export default function NewQuery() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (res.status === 402) { addToast("Free tier limit reached!", "error"); router.push("/pricing"); return; }
+        if (res.status === 402) {
+          setShowUpgrade(true);
+          setError(data.detail || "You've used your free questions. Upgrade to continue.");
+          addToast(data.detail || "Free tier limit reached", "error");
+          return;
+        }
         if (res.status === 401) { addToast("Please sign in again", "error"); router.push("/signin"); return; }
         throw new Error(data.detail || "Query failed");
       }
@@ -112,6 +123,13 @@ export default function NewQuery() {
       localStorage.removeItem(DRAFT_KEY);
       setSavedDraft(null);
       addToast("Query submitted successfully", "success");
+      if (usage?.quota_limit != null) {
+        setUsage((current) => current ? {
+          ...current,
+          total_queries: (current.total_queries || 0) + 1,
+          queries_remaining: Math.max(0, (current.queries_remaining ?? current.quota_limit) - 1),
+        } : current);
+      }
     } catch (err) {
       setError(err.message);
       addToast(err.message, "error");
@@ -119,6 +137,10 @@ export default function NewQuery() {
       setLoading(false);
     }
   }
+
+  const freeQuotaLabel = usage?.quota_limit != null
+    ? `${Math.max(0, (usage.quota_limit || 0) - (usage.total_queries || 0))} of ${usage.quota_limit} free questions left`
+    : null;
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -141,6 +163,9 @@ export default function NewQuery() {
           <div>
             <h1 className="text-2xl font-bold">Ask a Professional Question</h1>
             <p className="text-slate-400 mt-1">Get AI-powered guidance on legal, financial, or medical topics.</p>
+            {freeQuotaLabel && (
+              <p className="text-sm text-indigo-300 mt-2">{freeQuotaLabel}</p>
+            )}
           </div>
           <button onClick={() => setShowTemplates(!showTemplates)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium transition-all">
@@ -208,6 +233,16 @@ export default function NewQuery() {
         </form>
 
         {error && <div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl">{error}</div>}
+
+        {showUpgrade && (
+          <div className="mt-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6 space-y-3">
+            <h2 className="text-lg font-semibold text-indigo-100">You&apos;ve used your 3 free questions</h2>
+            <p className="text-sm text-slate-300">Your question is still on this page. Upgrade to Pro to send it and keep asking.</p>
+            <a href="/pricing" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-xl text-sm font-medium">
+              Upgrade to send this
+            </a>
+          </div>
+        )}
 
         {result && (
           <div className="mt-8 space-y-4">

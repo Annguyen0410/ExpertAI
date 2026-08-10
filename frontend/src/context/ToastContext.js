@@ -5,7 +5,7 @@ import { createContext, useContext, useState, useCallback } from "react";
 const ToastContext = createContext();
 
 export function useToast() {
-  return useContext(ToastContext);
+  return useContext(ToastContext) || { addToast() {}, removeToast() {} };
 }
 
 export function ToastProvider({ children }) {

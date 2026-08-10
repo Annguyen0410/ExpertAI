@@ -1,0 +1,13 @@
+User-Agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /operations
+Disallow: /professional
+Disallow: /settings
+Disallow: /query
+Disallow: /signin
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://expertai-io.onrender.com/sitemap.xml

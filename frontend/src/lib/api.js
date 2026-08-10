@@ -14,6 +14,12 @@ export function extractApiError(payload) {
     if (messages.length > 0) return messages.join(" ");
   }
   if (typeof payload.detail === "string" && payload.detail.length > 0) return payload.detail;
+  if (Array.isArray(payload.detail) && payload.detail.length > 0) {
+    const messages = payload.detail
+      .map((item) => (typeof item === "string" ? item : item?.msg))
+      .filter((msg) => typeof msg === "string" && msg.length > 0);
+    if (messages.length > 0) return messages.join(" ");
+  }
   if (typeof payload.message === "string" && payload.message.length > 0) return payload.message;
   return "";
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bot, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -9,21 +10,26 @@ import { useToast } from "@/context/ToastContext";
 export default function SignIn() {
   const router = useRouter();
   const { signin } = useAuth();
-  const { addToast: showToast } = useToast();
+  const toast = useToast();
+  const showToast = toast?.addToast;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
+    setError("");
     try {
       await signin(email.trim().toLowerCase(), password);
-      showToast("Welcome back!", "success");
+      showToast?.("Welcome back!", "success");
       router.push("/dashboard");
     } catch (err) {
-      showToast(err.message, "error");
+      const message = err?.message || "Sign in failed. Please try again.";
+      setError(message);
+      showToast?.(message, "error");
     } finally {
       setLoading(false);
     }
@@ -38,6 +44,11 @@ export default function SignIn() {
           <p className="text-slate-400 text-sm mt-1">Sign in to continue to ExpertAI</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div role="alert" className="rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              {error}
+            </div>
+          )}
           <div>
             <label className="text-sm text-slate-400 mb-1 block">Email</label>
             <input
@@ -50,7 +61,12 @@ export default function SignIn() {
             />
           </div>
           <div>
-            <label className="text-sm text-slate-400 mb-1 block">Password</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-sm text-slate-400">Password</label>
+              <Link href="/forgot-password" className="text-xs text-indigo-400 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 type={showPw ? "text" : "password"}
@@ -79,9 +95,9 @@ export default function SignIn() {
         </form>
         <p className="text-center text-sm text-slate-500 mt-6">
           Don&apos;t have an account?{" "}
-          <a href="/signup" className="text-indigo-400 hover:underline">
+          <Link href="/signup" className="text-indigo-400 hover:underline">
             Create one
-          </a>
+          </Link>
         </p>
       </div>
     </div>

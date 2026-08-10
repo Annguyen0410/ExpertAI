@@ -27,6 +27,16 @@ export default function OperationsDashboard() {
 
   useEffect(() => {
     if (!getToken()) { router.push("/signin"); return; }
+    try {
+      const stored = JSON.parse(localStorage.getItem("user") || "{}");
+      if (stored?.role !== "admin") {
+        router.replace("/dashboard");
+        return;
+      }
+    } catch {
+      router.replace("/dashboard");
+      return;
+    }
     fetchAll();
   }, []);
 
@@ -39,6 +49,10 @@ export default function OperationsDashboard() {
         authorizedFetch(`${API}/analytics/revenue`),
         authorizedFetch(`${API}/analytics/testimonials`),
       ]);
+      if (oRes.status === 403 || lRes.status === 403 || rRes.status === 403) {
+        router.replace("/dashboard");
+        return;
+      }
       if (oRes.ok) setOverview(await oRes.json());
       if (lRes.ok) setAgentLogs(await lRes.json());
       if (rRes.ok) setRevenue(await rRes.json());

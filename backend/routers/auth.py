@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
+import logging
+import secrets
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy.orm import Session
 
@@ -30,6 +32,8 @@ from auth import (
 )
 from config import (
     ALLOW_LEGACY_REFRESH_BODY,
+    APP_BASE_URL,
+    APP_ENV,
     CSRF_COOKIE_NAME,
     PROFESSIONAL_INVITE_CODE,
     REFRESH_COOKIE_NAME,
@@ -39,11 +43,25 @@ from config import (
     RETURN_REFRESH_TOKEN_IN_BODY,
 )
 from database import get_db
-from models import Query, QueryStatus, RefreshToken, RevenueEvent, SubscriptionTier, User, UserRole
+from models import (
+    PasswordResetToken,
+    Query,
+    QueryStatus,
+    RefreshToken,
+    RevenueEvent,
+    SubscriptionTier,
+    User,
+    UserRole,
+)
 from security import check_rate_limit, generate_csrf_token, sanitize_input, validate_email, validate_password, verify_csrf
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+PASSWORD_RESET_EXPIRE_MINUTES = 30
+_GENERIC_RESET_MESSAGE = (
+    "If an account exists for that email, password reset instructions have been sent."
+)
 
 
 class SignUpRequest(BaseModel):
@@ -133,6 +151,30 @@ class ChangePasswordRequest(BaseModel):
         return value
 
 
+class ForgotPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class ResetPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    token: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        valid, message = validate_password(value)
+        if not valid:
+            raise ValueError(message)
+        return value
+
+
 class AuthResponse(BaseModel):
     token: str
     refresh_token: str | None = None
@@ -141,6 +183,26 @@ class AuthResponse(BaseModel):
     name: str
     role: str
     subscription_tier: str
+
+
+def _password_reset_token_hash(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+
+def _issue_password_reset(user: User, db: Session) -> str:
+    raw_token = secrets.token_urlsafe(32)
+    db.query(PasswordResetToken).filter(
+        PasswordResetToken.user_id == user.id,
+        PasswordResetToken.used_at.is_(None),
+    ).update({PasswordResetToken.used_at: utcnow()}, synchronize_session=False)
+    db.add(
+        PasswordResetToken(
+            user_id=user.id,
+            token_hash=_password_reset_token_hash(raw_token),
+            expires_at=utcnow() + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES),
+        )
+    )
+    return raw_token
 
 
 def _set_session_cookies(response: Response, refresh_token: str) -> None:
@@ -230,6 +292,7 @@ def signin(req: SignInRequest, request: Request, response: Response, db: Session
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail=f"Account temporarily locked. Try again in {ACCOUNT_LOCKOUT_MINUTES} minutes.",
+            headers={"Retry-After": str(ACCOUNT_LOCKOUT_MINUTES * 60)},
         )
 
     reset_login_attempts(user)
@@ -237,6 +300,70 @@ def signin(req: SignInRequest, request: Request, response: Response, db: Session
     log_security_event(db, "signin", user.id, request)
     db.commit()
     return payload
+
+
+@router.post("/forgot-password")
+def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    """Always return the same message so callers cannot probe for account existence."""
+    check_rate_limit(request, max_requests=5, window=60, bucket="forgot-password")
+    valid, _ = validate_email(req.email)
+    payload = {"status": "ok", "message": _GENERIC_RESET_MESSAGE}
+    if not valid:
+        return payload
+
+    user = db.query(User).filter(User.email == req.email).first()
+    if user:
+        raw_token = _issue_password_reset(user, db)
+        reset_url = f"{APP_BASE_URL}/reset-password?token={raw_token}"
+        log_security_event(db, "password_reset_requested", user.id, request, severity="high")
+        db.commit()
+        # Email delivery is optional until SMTP is configured. The reset URL is
+        # always logged so operators can recover a locked customer manually.
+        logger.info("Password reset link for %s: %s", user.email, reset_url)
+        if APP_ENV != "production":
+            payload["dev_reset_url"] = reset_url
+    else:
+        log_security_event(db, "password_reset_unknown_email", None, request, details=req.email[:80])
+        db.commit()
+    return payload
+
+
+@router.post("/reset-password")
+def reset_password(req: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
+    check_rate_limit(request, max_requests=5, window=60, bucket="reset-password")
+    record = (
+        db.query(PasswordResetToken)
+        .filter(PasswordResetToken.token_hash == _password_reset_token_hash(req.token))
+        .first()
+    )
+    now = utcnow()
+    if not record or record.used_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link is invalid or has expired. Request a new one.",
+        )
+    expires_at = record.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=now.tzinfo)
+    if expires_at < now:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This reset link is invalid or has expired. Request a new one.",
+        )
+
+    user = db.query(User).filter(User.id == record.user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link is invalid or has expired.")
+
+    user.hashed_password = hash_password(req.new_password)
+    user.token_version = (user.token_version or 1) + 1
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    record.used_at = now
+    revoke_user_refresh_tokens(user.id, db)
+    log_security_event(db, "password_reset_completed", user.id, request, severity="high")
+    db.commit()
+    return {"status": "ok", "message": "Password updated. You can sign in with your new password."}
 
 
 @router.post("/refresh", response_model=AuthResponse)

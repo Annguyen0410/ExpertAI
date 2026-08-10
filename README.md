@@ -125,6 +125,19 @@ npm run lint
 npm run build
 ```
 
+## Run Website:
+
+# backend
+cd "D:\Code folder\ExpertAI Devpost\backend"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# frontend 
+cd "D:\Code folder\ExpertAI Devpost\frontend"
+npm run dev
+
 ## Hackathon positioning
 
 ExpertAI is designed for the Professional Services Access category: routine

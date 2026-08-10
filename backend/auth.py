@@ -30,7 +30,7 @@ from security import get_client_ip, hash_ip
 pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 security = HTTPBearer(auto_error=False)
 
-FAILED_LOGIN_LIMIT = 5
+FAILED_LOGIN_LIMIT = 8
 ACCOUNT_LOCKOUT_MINUTES = 15
 
 
@@ -280,6 +280,7 @@ def handle_failed_login(user: User, request: Request, db: Session) -> None:
         raise HTTPException(
             status_code=status.HTTP_423_LOCKED,
             detail="Account temporarily locked due to too many failed attempts.",
+            headers={"Retry-After": str(ACCOUNT_LOCKOUT_MINUTES * 60)},
         )
     db.commit()
 

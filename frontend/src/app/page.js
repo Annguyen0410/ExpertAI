@@ -22,7 +22,11 @@ export default function Home() {
       setEmailError("Enter a valid email address or leave this field blank to continue.");
       return;
     }
-    if (normalizedEmail) localStorage.setItem("expertai_signup_email", normalizedEmail);
+    if (normalizedEmail) {
+      localStorage.setItem("expertai_signup_email", normalizedEmail);
+      router.push(`/signup?email=${encodeURIComponent(normalizedEmail)}`);
+      return;
+    }
     router.push("/signup");
   }
 
@@ -34,7 +38,6 @@ export default function Home() {
           <span className="text-xl font-bold">ExpertAI</span>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/operations" className="text-sm text-slate-400 hover:text-white hidden sm:block">Operations</Link>
           <Link href="/pricing" className="text-sm text-slate-400 hover:text-white hidden sm:block">Pricing</Link>
           <Link href="/signin" className="text-sm text-slate-300 hover:text-white transition-colors">Sign In</Link>
           <Link href="/signup" className="text-sm bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-medium transition-all">Get Started</Link>

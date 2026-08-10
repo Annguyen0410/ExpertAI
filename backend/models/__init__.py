@@ -179,6 +179,17 @@ class RefreshToken(Base):
     user = relationship("User", back_populates="refresh_tokens")
 
 
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+    __table_args__ = (Index("ix_password_reset_tokens_user_active", "user_id", "used_at"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+
 class Feedback(Base):
     __tablename__ = "feedback"
     __table_args__ = (Index("ix_feedback_query_created", "query_id", "created_at"),)
