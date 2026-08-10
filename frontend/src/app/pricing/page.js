@@ -81,7 +81,7 @@ export default function Pricing() {
           <div className="text-center mb-12">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-300 mb-3">Pricing</p>
             <h1 className="text-4xl font-bold mb-4">Clear plans. No invented outcomes.</h1>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">Choose access that fits your workflow. Billing only opens when this deployment has a real Stripe configuration.</p>
+            <p className="text-slate-400 text-lg max-w-2xl mx-auto">Choose access that fits your workflow. Cancel anytime. Secure payment via Stripe.</p>
           </div>
 
           {!authLoading && user && billingAvailable === false && (

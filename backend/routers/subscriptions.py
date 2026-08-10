@@ -74,6 +74,34 @@ def create_checkout(
     return {"url": checkout.url, "mock": False}
 
 
+@router.post("/portal")
+def billing_portal(request: Request, user: User = Depends(get_current_user)):
+    """Open Stripe's hosted customer portal (cancel, card update, invoices)."""
+    check_rate_limit(request, max_requests=10, window=60, bucket="portal")
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing is not configured for this deployment.",
+        )
+    if not user.stripe_customer_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No billing account found. Subscribe to a plan first.",
+        )
+    stripe.api_key = STRIPE_SECRET_KEY
+    try:
+        portal = stripe.billing_portal.Session.create(
+            customer=user.stripe_customer_id,
+            return_url=f"{APP_BASE_URL}/settings?tab=billing",
+        )
+    except stripe.StripeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing portal is temporarily unavailable. Please try again.",
+        ) from exc
+    return {"url": portal.url}
+
+
 def _webhook_user(event_object: dict, db: Session) -> User | None:
     metadata = event_object.get("metadata") or {}
     user_id = metadata.get("user_id") if isinstance(metadata, dict) else None
@@ -141,6 +169,20 @@ async def stripe_webhook(
                     event_type="invoice_paid",
                     amount_cents=int(event_object.get("amount_paid") or 0),
                     description="Subscription invoice paid",
+                    stripe_event_id=event_id,
+                )
+            )
+            recorded = True
+    elif event_type == "invoice.payment_failed":
+        # Access stays active during Stripe's retry window; the portal lets the
+        # customer fix the card before the subscription drops to a cancel state.
+        if user:
+            db.add(
+                RevenueEvent(
+                    user_id=user.id,
+                    event_type="invoice_payment_failed",
+                    amount_cents=int(event_object.get("amount_due") or 0),
+                    description="Payment failed — Stripe will retry",
                     stripe_event_id=event_id,
                 )
             )

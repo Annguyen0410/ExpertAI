@@ -13,8 +13,22 @@ export default function SignUpPage() {
   const [form, setForm] = useState({ email: "", password: "", name: "", role: "individual" });
   const [loading, setLoading] = useState(false);
 
+  function validatePassword(password) {
+    if (password.length < 12) return "Password must be at least 12 characters";
+    if (password.length > 128) return "Password must be less than 128 characters";
+    if (!/[A-Z]/.test(password)) return "Password must contain at least one uppercase letter";
+    if (!/[a-z]/.test(password)) return "Password must contain at least one lowercase letter";
+    if (!/\d/.test(password)) return "Password must contain at least one number";
+    return null;
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
+    const passwordError = validatePassword(form.password);
+    if (passwordError) {
+      showToast(passwordError, "error");
+      return;
+    }
     setLoading(true);
     try {
       await signup(form.email.trim().toLowerCase(), form.password, form.name.trim(), form.role);
@@ -67,13 +81,14 @@ export default function SignUpPage() {
             <input
               type="password"
               required
-              minLength={8}
+              minLength={12}
+              maxLength={128}
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="At least 8 characters with upper, lower, number"
+              placeholder="At least 12 characters with upper, lower, number"
             />
-            <p className="text-xs text-slate-500 mt-1">Must be 8+ chars with uppercase, lowercase, and number</p>
+            <p className="text-xs text-slate-500 mt-1">Must be 12+ chars with uppercase, lowercase, and number</p>
           </div>
           <div>
             <label className="text-sm text-slate-400 mb-1 block">I am a...</label>

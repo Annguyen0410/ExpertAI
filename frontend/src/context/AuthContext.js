@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { extractApiError } from "../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const AuthContext = createContext(null);
@@ -32,10 +33,7 @@ async function readResponse(response) {
     : await response.text().catch(() => "");
 
   if (!response.ok) {
-    const detail = typeof payload === "object" && payload
-      ? payload.detail || payload.message
-      : "";
-    throw new Error(detail || `Request failed (${response.status}).`);
+    throw new Error(extractApiError(payload) || `Request failed (${response.status}).`);
   }
   return payload;
 }

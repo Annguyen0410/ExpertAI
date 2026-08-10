@@ -1,5 +1,23 @@
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+/**
+ * Pulls the most useful human-readable message out of an API error payload.
+ * FastAPI validation errors arrive as {detail, errors: [{loc, msg}]}; most
+ * other failures carry a plain {detail}. Returns an empty string if none.
+ */
+export function extractApiError(payload) {
+  if (!payload || typeof payload !== "object") return "";
+  if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+    const messages = payload.errors
+      .map((error) => error?.msg)
+      .filter((msg) => typeof msg === "string" && msg.length > 0);
+    if (messages.length > 0) return messages.join(" ");
+  }
+  if (typeof payload.detail === "string" && payload.detail.length > 0) return payload.detail;
+  if (typeof payload.message === "string" && payload.message.length > 0) return payload.message;
+  return "";
+}
+
 function getToken() {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");

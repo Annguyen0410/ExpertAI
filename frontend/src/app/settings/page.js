@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, ArrowLeft, User, Lock, TrendingUp, DollarSign, Save, Loader } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
-import { authorizedFetch } from "../../lib/api";
+import { authorizedFetch, extractApiError } from "../../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -28,6 +28,7 @@ export default function Settings() {
   const [usage, setUsage] = useState(null);
   const [billing, setBilling] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     if (!getToken()) { router.push("/signin"); return; }
@@ -82,7 +83,7 @@ export default function Settings() {
 
   async function changePassword(e) {
     e.preventDefault();
-    if (newPw.length < 6) { addToast("Password must be at least 6 characters", "error"); return; }
+    if (newPw.length < 12) { addToast("Password must be at least 12 characters", "error"); return; }
     setSaving(true);
     try {
       const res = await authorizedFetch(`${API}/auth/change-password`, {
@@ -91,9 +92,25 @@ export default function Settings() {
         body: JSON.stringify({ current_password: oldPw, new_password: newPw }),
       });
       if (res.ok) { addToast("Password changed", "success"); setOldPw(""); setNewPw(""); }
-      else { const d = await res.json(); addToast(d.detail || "Failed", "error"); }
+      else { const d = await res.json(); addToast(extractApiError(d) || "Failed", "error"); }
     } catch { addToast("Failed to change password", "error"); }
     setSaving(false);
+  }
+
+  async function openPortal() {
+    setPortalLoading(true);
+    try {
+      const res = await authorizedFetch(`${API}/subscriptions/portal`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.url) { window.location.assign(data.url); return; }
+        addToast("Billing portal could not be opened", "error");
+      } else {
+        const d = await res.json().catch(() => null);
+        addToast(extractApiError(d) || "Billing portal could not be opened", "error");
+      }
+    } catch { addToast("Billing portal could not be opened", "error"); }
+    setPortalLoading(false);
   }
 
   return (
@@ -155,7 +172,7 @@ export default function Settings() {
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">New Password</label>
-                <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={6} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
               </div>
               <button type="submit" disabled={saving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
                 {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -216,7 +233,18 @@ export default function Settings() {
               <span className={`text-xs px-2 py-0.5 rounded-full ${billing?.subscription_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
                 {billing?.subscription_active ? "Active" : "Inactive"}
               </span>
-              <a href="/pricing" className="text-xs text-indigo-400 hover:text-indigo-300 ml-auto">Change plan →</a>
+              {billing?.subscription_active && (
+                <button
+                  type="button"
+                  onClick={openPortal}
+                  disabled={portalLoading}
+                  className="ml-auto flex items-center gap-2 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium"
+                >
+                  {portalLoading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <DollarSign className="w-3.5 h-3.5" />}
+                  {portalLoading ? "Opening..." : "Manage subscription"}
+                </button>
+              )}
+              <a href="/pricing" className="text-xs text-indigo-400 hover:text-indigo-300 ml-3">Change plan →</a>
             </div>
             {billing?.events?.length > 0 ? (
               <div className="space-y-2">
