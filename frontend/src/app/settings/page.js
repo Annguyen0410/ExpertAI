@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, ArrowLeft, User, Lock, TrendingUp, DollarSign, Save, Loader } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import { authorizedFetch } from "../../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -37,9 +38,7 @@ export default function Settings() {
 
   async function fetchUser() {
     try {
-      const res = await fetch(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await authorizedFetch(`${API}/auth/me`);
       if (res.ok) {
         const data = await res.json();
         setUser(data);
@@ -50,18 +49,14 @@ export default function Settings() {
 
   async function fetchUsage() {
     try {
-      const res = await fetch(`${API}/auth/usage`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await authorizedFetch(`${API}/auth/usage`);
       if (res.ok) setUsage(await res.json());
     } catch {}
   }
 
   async function fetchBilling() {
     try {
-      const res = await fetch(`${API}/auth/billing`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await authorizedFetch(`${API}/auth/billing`);
       if (res.ok) setBilling(await res.json());
     } catch {}
   }
@@ -70,9 +65,9 @@ export default function Settings() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch(`${API}/auth/profile`, {
+      const res = await authorizedFetch(`${API}/auth/profile`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name }),
       });
       if (res.ok) {
@@ -90,9 +85,9 @@ export default function Settings() {
     if (newPw.length < 6) { addToast("Password must be at least 6 characters", "error"); return; }
     setSaving(true);
     try {
-      const res = await fetch(`${API}/auth/change-password`, {
+      const res = await authorizedFetch(`${API}/auth/change-password`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ current_password: oldPw, new_password: newPw }),
       });
       if (res.ok) { addToast("Password changed", "success"); setOldPw(""); setNewPw(""); }

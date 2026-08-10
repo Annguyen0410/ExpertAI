@@ -7,6 +7,7 @@ import {
   CheckCircle, Clock, BarChart3, FileText, Globe, Cpu,
   ArrowUpRight, ArrowDownRight, RefreshCw, LogOut
 } from "lucide-react";
+import { authorizedFetch } from "../../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -31,13 +32,12 @@ export default function OperationsDashboard() {
 
   async function fetchAll() {
     setRefreshing(true);
-    const headers = { Authorization: `Bearer ${getToken()}` };
     try {
       const [oRes, lRes, rRes, tRes] = await Promise.all([
-        fetch(`${API}/analytics/overview`, { headers }),
-        fetch(`${API}/analytics/agent-logs?limit=20`, { headers }),
-        fetch(`${API}/analytics/revenue`, { headers }),
-        fetch(`${API}/analytics/testimonials`, { headers }),
+        authorizedFetch(`${API}/analytics/overview`),
+        authorizedFetch(`${API}/analytics/agent-logs?limit=20`),
+        authorizedFetch(`${API}/analytics/revenue`),
+        authorizedFetch(`${API}/analytics/testimonials`),
       ]);
       if (oRes.ok) setOverview(await oRes.json());
       if (lRes.ok) setAgentLogs(await lRes.json());

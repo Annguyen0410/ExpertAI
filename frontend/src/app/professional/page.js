@@ -6,6 +6,7 @@ import {
   Bot, Briefcase, Clock, CheckCircle, AlertTriangle,
   ArrowRight, Send, User, FileText, RefreshCw, LogOut, Star
 } from "lucide-react";
+import { authorizedFetch } from "../../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -37,12 +38,11 @@ export default function ProfessionalDashboard() {
   }, []);
 
   async function fetchData() {
-    const headers = { Authorization: `Bearer ${getToken()}` };
     try {
       const [eRes, aRes, sRes] = await Promise.all([
-        fetch(`${API}/professional/escalations`, { headers }),
-        fetch(`${API}/professional/escalations/available`, { headers }),
-        fetch(`${API}/professional/escalations/stats`, { headers }),
+        authorizedFetch(`${API}/professional/escalations`),
+        authorizedFetch(`${API}/professional/escalations/available`),
+        authorizedFetch(`${API}/professional/escalations/stats`),
       ]);
       if (eRes.ok) setEscalations(await eRes.json());
       if (aRes.ok) setAvailable(await aRes.json());
@@ -53,9 +53,8 @@ export default function ProfessionalDashboard() {
 
   async function claimEscalation(id) {
     try {
-      const res = await fetch(`${API}/professional/escalations/${id}/claim`, {
+      const res = await authorizedFetch(`${API}/professional/escalations/${id}/claim`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (res.ok) fetchData();
     } catch (e) { console.error(e); }
@@ -65,11 +64,10 @@ export default function ProfessionalDashboard() {
     if (!response.trim() || !selectedEsc) return;
     setSending(true);
     try {
-      await fetch(`${API}/professional/escalations/${selectedEsc.id}/respond`, {
+      await authorizedFetch(`${API}/professional/escalations/${selectedEsc.id}/respond`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify({ professional_response: response }),
       });

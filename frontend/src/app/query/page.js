@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Bot, Scale, DollarSign, Heart, Send, ArrowLeft, Loader, FileText, Sparkles, History, Trash2, TriangleAlert } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import { authorizedFetch } from "../../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -96,14 +97,15 @@ export default function NewQuery() {
     setError("");
     setResult(null);
     try {
-      const res = await fetch(`${API}/agents/query`, {
+      const res = await authorizedFetch(`${API}/agents/query`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ domain: selectedDomain, content }),
       });
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 402) { addToast("Free tier limit reached!", "error"); router.push("/pricing"); return; }
+        if (res.status === 401) { addToast("Please sign in again", "error"); router.push("/signin"); return; }
         throw new Error(data.detail || "Query failed");
       }
       setResult(data);

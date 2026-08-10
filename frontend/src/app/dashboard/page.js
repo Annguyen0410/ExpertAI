@@ -7,6 +7,7 @@ import {
   LogOut, Menu, X, Activity, Briefcase, Search, Bell, Settings, Filter
 } from "lucide-react";
 import { TableSkeleton } from "../../components/LoadingSkeleton";
+import { authorizedFetch } from "../../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -44,9 +45,7 @@ export default function Dashboard() {
 
   async function fetchQueries() {
     try {
-      const res = await fetch(`${API}/agents/queries`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await authorizedFetch(`${API}/agents/queries`);
       if (res.ok) {
         const data = await res.json();
         setQueries(data);
