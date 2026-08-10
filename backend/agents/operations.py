@@ -75,25 +75,40 @@ class EscalationAgent(BaseAgent):
 
 
 class FollowUpAgent(BaseAgent):
+    """Suggests safe next steps without spending another model call per query."""
+
+    _MISSING_SIGNALS = (
+        "how much", "how long", "what happens if", "should i", "is it legal",
+        "do i need", "when", "where", "which", "does this apply",
+    )
+    _REVIEW_SIGNALS = (
+        "income", "contract", "prescription", "symptom", "lawsuit",
+        "deadline", "settlement", "diagnos", "tax filing", "invest",
+    )
+
     def __init__(self):
         super().__init__(FOLLOW_UP_PROMPT)
 
     def recommend(self, domain: str, response: str) -> dict[str, list[str]]:
-        try:
-            data = self.run_with_json(
-                f"Domain: {domain}\n\nPrior response:\n{response[:8_000]}"
+        lowered = response.lower()
+        missing = [signal for signal in self._MISSING_SIGNALS if signal in lowered][:3]
+        steps: list[str] = []
+        if missing:
+            steps.append(
+                "Answer your stated question with verified sources or a qualified "
+                f"{domain} professional before you decide."
             )
-            steps = data.get("next_steps", [])
-            missing = data.get("missing_information", [])
-            return {
-                "next_steps": [str(item)[:300] for item in steps[:3]] if isinstance(steps, list) else [],
-                "missing_information": [str(item)[:200] for item in missing[:3]] if isinstance(missing, list) else [],
-            }
-        except AgentExecutionError:
-            return {
-                "next_steps": ["Review the information with a qualified professional if it affects a consequential decision."],
-                "missing_information": [],
-            }
+        steps.append(
+            "Gather the concrete facts (dates, amounts, parties) for a more specific next question."
+        )
+        if any(signal in lowered for signal in self._REVIEW_SIGNALS):
+            steps.append("Bring a licensed professional into the conversation before you act.")
+        if not steps:
+            steps.append("Ask a focused follow-up with the specific facts you still need.")
+        return {
+            "next_steps": [step[:300] for step in steps[:3]],
+            "missing_information": [signal[:200] for signal in missing],
+        }
 
 
 class CustomerSupportAgent(BaseAgent):

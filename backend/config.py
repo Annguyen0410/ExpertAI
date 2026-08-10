@@ -125,6 +125,8 @@ RATE_LIMIT_WINDOW_SECONDS = _int_env("RATE_LIMIT_WINDOW_SECONDS", 60, minimum=1,
 RATE_LIMIT_MAX_KEYS = _int_env("RATE_LIMIT_MAX_KEYS", 20_000, minimum=100, maximum=1_000_000)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# Optional manual override; when empty the backend rotates across available models.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip()
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "").strip()
