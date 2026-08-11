@@ -45,16 +45,41 @@ def _csv_env(name: str, default: str = "") -> list[str]:
     return [item.strip().rstrip("/") for item in os.getenv(name, default).split(",") if item.strip()]
 
 
-APP_ENV = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).strip().lower()
-if APP_ENV not in {"development", "test", "staging", "production"}:
-    raise RuntimeError("APP_ENV must be development, test, staging, or production")
-# Hosted platforms (e.g. Render) inject RENDER=true. Never allow the development
-# default there — it previously caused password-reset tokens to leak via API.
-if os.getenv("RENDER") and APP_ENV == "development":
-    raise RuntimeError(
-        "APP_ENV is 'development' on Render. Set APP_ENV=production (or staging) "
-        "in the service environment before deploying."
-    )
+def _resolve_app_env() -> str:
+    """Resolve the runtime environment, tolerating common platform values.
+
+    Hosted platforms (e.g. Render) inject RENDER=true. There, the strict
+    production mode is the only sane default, so unrecognized or missing
+    values resolve to production (fail-safe: every production security gate
+    still applies) instead of hard-crashing the worker.
+    """
+    raw = (os.getenv("APP_ENV") or os.getenv("ENVIRONMENT") or "").strip().lower()
+    on_render = bool(os.getenv("RENDER"))
+
+    if not raw:
+        if on_render:
+            logger.warning("APP_ENV is not set on Render; defaulting to production")
+            return "production"
+        return "development"
+
+    normalized = {"dev": "development", "prod": "production"}.get(raw, raw)
+    if normalized not in {"development", "test", "staging", "production"}:
+        if on_render:
+            logger.warning("Unrecognized APP_ENV %r on Render; defaulting to production", raw)
+            return "production"
+        raise RuntimeError(
+            f"APP_ENV must be development, test, staging, or production (got {raw!r})"
+        )
+
+    if normalized == "development" and on_render:
+        raise RuntimeError(
+            "APP_ENV is 'development' on Render. Set APP_ENV=production (or staging) "
+            "in the service environment before deploying."
+        )
+    return normalized
+
+
+APP_ENV = _resolve_app_env()
 IS_PRODUCTION = APP_ENV == "production"
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'expertai.db'}")
@@ -137,15 +162,22 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip()
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 GCS_BUCKET_NAME = os.getenv("GCS_BUCKET_NAME", "").strip()
+# Production prefers GCS, but falls back to the instance filesystem when no
+# bucket is configured so deployments without managed cloud storage (e.g.
+# Render free instances) can still boot. Local uploads live in
+# DOCUMENT_STORAGE_DIR and are lost when the instance is recycled.
 DOCUMENT_STORAGE_MODE = os.getenv(
-    "DOCUMENT_STORAGE_MODE", "gcs" if IS_PRODUCTION else "local"
+    "DOCUMENT_STORAGE_MODE", "gcs" if IS_PRODUCTION and GCS_BUCKET_NAME else "local"
 ).strip().lower()
 if DOCUMENT_STORAGE_MODE not in {"local", "gcs"}:
     raise RuntimeError("DOCUMENT_STORAGE_MODE must be local or gcs")
-if IS_PRODUCTION and DOCUMENT_STORAGE_MODE == "local":
-    raise RuntimeError("Production document storage must use a managed GCS bucket")
 if DOCUMENT_STORAGE_MODE == "gcs" and not GCS_BUCKET_NAME:
     raise RuntimeError("GCS_BUCKET_NAME is required when DOCUMENT_STORAGE_MODE=gcs")
+if IS_PRODUCTION and DOCUMENT_STORAGE_MODE == "local":
+    logger.warning(
+        "Document storage is LOCAL in production; uploads are lost when the "
+        "instance is recycled. Set GCS_BUCKET_NAME to persist documents."
+    )
 _default_document_storage_dir = "/tmp/expertai-uploads" if DOCUMENT_STORAGE_MODE == "gcs" else str(BASE_DIR / "uploads")
 DOCUMENT_STORAGE_DIR = Path(
     os.getenv("DOCUMENT_STORAGE_DIR", "").strip() or _default_document_storage_dir
