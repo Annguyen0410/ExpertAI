@@ -48,6 +48,13 @@ def _csv_env(name: str, default: str = "") -> list[str]:
 APP_ENV = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).strip().lower()
 if APP_ENV not in {"development", "test", "staging", "production"}:
     raise RuntimeError("APP_ENV must be development, test, staging, or production")
+# Hosted platforms (e.g. Render) inject RENDER=true. Never allow the development
+# default there — it previously caused password-reset tokens to leak via API.
+if os.getenv("RENDER") and APP_ENV == "development":
+    raise RuntimeError(
+        "APP_ENV is 'development' on Render. Set APP_ENV=production (or staging) "
+        "in the service environment before deploying."
+    )
 IS_PRODUCTION = APP_ENV == "production"
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'expertai.db'}")
@@ -151,6 +158,21 @@ if _app_url.scheme not in {"http", "https"} or not _app_url.netloc:
     raise RuntimeError("APP_BASE_URL must be a valid absolute http(s) URL")
 if IS_PRODUCTION and _app_url.scheme != "https":
     raise RuntimeError("APP_BASE_URL must use https in production")
+
+# Transactional email — prefer Resend; SMTP is the fallback. Password-reset
+# tokens must only leave the server over email (never in API JSON).
+EMAIL_FROM = os.getenv("EMAIL_FROM", "ExpertAI <noreply@expertai.io>").strip()
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = _int_env("SMTP_PORT", 587, minimum=1, maximum=65535)
+SMTP_USER = os.getenv("SMTP_USER", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+SMTP_USE_TLS = _bool_env("SMTP_USE_TLS", True)
+if IS_PRODUCTION and not RESEND_API_KEY and not SMTP_HOST:
+    logger.warning(
+        "No email provider configured (RESEND_API_KEY or SMTP_HOST). "
+        "Password reset emails will not be delivered."
+    )
 
 # Public users may never choose an elevated role. A deployment can create a
 # time-bounded professional onboarding code outside source control.

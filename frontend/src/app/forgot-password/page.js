@@ -13,7 +13,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [devResetUrl, setDevResetUrl] = useState("");
   const [error, setError] = useState("");
 
   async function handleSubmit(e) {
@@ -21,12 +20,10 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError("");
     setMessage("");
-    setDevResetUrl("");
     try {
       const data = await forgotPassword(email.trim().toLowerCase());
       const nextMessage = data?.message || "If an account exists for that email, password reset instructions have been sent.";
       setMessage(nextMessage);
-      if (data?.dev_reset_url) setDevResetUrl(data.dev_reset_url);
       showToast?.(nextMessage, "success");
     } catch (err) {
       const nextError = err?.message || "Could not start password reset.";
@@ -54,14 +51,6 @@ export default function ForgotPasswordPage() {
           {message && (
             <div role="status" className="rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
               {message}
-              {devResetUrl && (
-                <p className="mt-2 break-all">
-                  Dev reset link:{" "}
-                  <a href={devResetUrl} className="text-indigo-300 hover:underline">
-                    {devResetUrl}
-                  </a>
-                </p>
-              )}
             </div>
           )}
           <div>

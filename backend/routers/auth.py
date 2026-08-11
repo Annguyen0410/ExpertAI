@@ -33,7 +33,6 @@ from auth import (
 from config import (
     ALLOW_LEGACY_REFRESH_BODY,
     APP_BASE_URL,
-    APP_ENV,
     CSRF_COOKIE_NAME,
     PROFESSIONAL_INVITE_CODE,
     REFRESH_COOKIE_NAME,
@@ -317,11 +316,20 @@ def forgot_password(req: ForgotPasswordRequest, request: Request, db: Session = 
         reset_url = f"{APP_BASE_URL}/reset-password?token={raw_token}"
         log_security_event(db, "password_reset_requested", user.id, request, severity="high")
         db.commit()
-        # Email delivery is optional until SMTP is configured. The reset URL is
-        # always logged so operators can recover a locked customer manually.
-        logger.info("Password reset link for %s: %s", user.email, reset_url)
-        if APP_ENV != "production":
-            payload["dev_reset_url"] = reset_url
+        # Never return the reset token in the HTTP response. Delivery is email
+        # only; development may log the URL when no provider is configured.
+        from email_service import send_password_reset_email
+
+        sent = send_password_reset_email(
+            to=user.email,
+            reset_url=reset_url,
+            expires_minutes=PASSWORD_RESET_EXPIRE_MINUTES,
+        )
+        if not sent:
+            logger.error(
+                "Password reset email was not delivered for user_id=%s",
+                user.id,
+            )
     else:
         log_security_event(db, "password_reset_unknown_email", None, request, details=req.email[:80])
         db.commit()

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from config import CORS_ORIGINS, DOCUMENT_STORAGE_DIR, ENABLE_DOCS, TRUSTED_HOSTS
+from config import APP_ENV, CORS_ORIGINS, DOCUMENT_STORAGE_DIR, ENABLE_DOCS, TRUSTED_HOSTS
 from database import Base, engine, migrate_schema
 from security import RateLimitMiddleware, RequestContextMiddleware, SecurityHeadersMiddleware
 
@@ -30,7 +30,7 @@ async def lifespan(_app: FastAPI):
     migrate_schema()
     Base.metadata.create_all(bind=engine)
     DOCUMENT_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
-    logger.info("application_started", extra={"request_id": "startup"})
+    logger.info("application_started env=%s", APP_ENV, extra={"request_id": "startup"})
     yield
     engine.dispose()
     logger.info("application_stopped", extra={"request_id": "shutdown"})

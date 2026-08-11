@@ -109,9 +109,35 @@ def _webhook_user(event_object: dict, db: Session) -> User | None:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             return user
+    client_reference_id = event_object.get("client_reference_id")
+    if client_reference_id:
+        user = db.query(User).filter(User.id == client_reference_id).first()
+        if user:
+            return user
     customer_id = event_object.get("customer")
     if customer_id:
         return db.query(User).filter(User.stripe_customer_id == customer_id).first()
+    return None
+
+
+def _tier_from_subscription(event_object: dict) -> SubscriptionTier | None:
+    """Map a Stripe subscription's price ID back to our subscription tier."""
+    items = (event_object.get("items") or {}).get("data") or []
+    price_ids = set()
+    for item in items:
+        price = item.get("price") if isinstance(item, dict) else None
+        if isinstance(price, dict) and price.get("id"):
+            price_ids.add(price["id"])
+        elif isinstance(item, dict) and item.get("plan", {}).get("id"):
+            price_ids.add(item["plan"]["id"])
+    if B2C_PRICE_ID and B2C_PRICE_ID in price_ids:
+        return SubscriptionTier.b2c
+    if B2B_PRICE_ID and B2B_PRICE_ID in price_ids:
+        return SubscriptionTier.b2b
+    metadata = event_object.get("metadata") or {}
+    tier = metadata.get("tier") if isinstance(metadata, dict) else None
+    if tier in {SubscriptionTier.b2c.value, SubscriptionTier.b2b.value}:
+        return SubscriptionTier(tier)
     return None
 
 
