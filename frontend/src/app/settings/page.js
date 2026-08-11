@@ -30,6 +30,7 @@ export default function Settings() {
   const [billing, setBilling] = useState(null);
   const [saving, setSaving] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState(null);
 
   useEffect(() => {
     if (!getToken()) { router.push("/signin"); return; }
@@ -66,6 +67,7 @@ export default function Settings() {
   async function updateProfile(e) {
     e.preventDefault();
     setSaving(true);
+    setProfileFeedback(null);
     try {
       const res = await authorizedFetch(`${API}/auth/profile`, {
         method: "PUT",
@@ -73,15 +75,22 @@ export default function Settings() {
         body: JSON.stringify({ name }),
       });
       if (res.ok) {
-        addToast("Profile updated", "success");
-        const stored = getStoredUser();
-        stored.name = name;
-        localStorage.setItem("user", JSON.stringify(stored));
+        const nextUser = { ...getStoredUser(), ...user, name };
+        setUser(nextUser);
+        localStorage.setItem("user", JSON.stringify(nextUser));
+        setProfileFeedback({ type: "success", message: "Profile updated." });
+        addToast("Profile updated.", "success");
       } else {
         const d = await res.json().catch(() => null);
-        addToast(extractApiError(d) || "Failed to update profile", "error");
+        const message = extractApiError(d) || "Failed to update profile";
+        setProfileFeedback({ type: "error", message });
+        addToast(message, "error");
       }
-    } catch { addToast("Failed to update profile", "error"); }
+    } catch {
+      const message = "Failed to update profile";
+      setProfileFeedback({ type: "error", message });
+      addToast(message, "error");
+    }
     setSaving(false);
   }
 
@@ -157,12 +166,32 @@ export default function Settings() {
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (profileFeedback) setProfileFeedback(null);
+                  }}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
               </div>
               <div>
                 <label className="text-sm text-slate-400 mb-1 block">Role</label>
                 <input type="text" value={user.role || ""} disabled className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-400 cursor-not-allowed capitalize" />
               </div>
+              {profileFeedback && (
+                <p
+                  role="status"
+                  className={`text-sm rounded-xl px-4 py-3 border ${
+                    profileFeedback.type === "success"
+                      ? "bg-emerald-950/60 border-emerald-500/30 text-emerald-200"
+                      : "bg-red-950/60 border-red-500/30 text-red-200"
+                  }`}
+                >
+                  {profileFeedback.message}
+                </p>
+              )}
               <button type="submit" disabled={saving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
                 {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? "Saving..." : "Save Changes"}
