@@ -53,6 +53,7 @@ from models import (
     UserRole,
 )
 from security import check_rate_limit, generate_csrf_token, sanitize_input, validate_email, validate_password, verify_csrf
+from stripe_sync import reconcile_subscription
 
 
 logger = logging.getLogger(__name__)
@@ -424,7 +425,11 @@ def logout(request: Request, response: Response, req: RefreshRequest | None = No
 
 
 @router.get("/me")
-def get_me(user: User = Depends(get_current_user)):
+def get_me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Reconcile the plan with Stripe so a successful payment is never left
+    # stuck behind a failed/delayed webhook delivery.
+    if reconcile_subscription(user):
+        db.commit()
     return {
         "id": user.id,
         "email": user.email,

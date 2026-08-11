@@ -14,6 +14,7 @@ from config import APP_BASE_URL, B2B_PRICE_ID, B2C_PRICE_ID, STRIPE_SECRET_KEY, 
 from database import get_db
 from models import RevenueEvent, SubscriptionTier, User
 from security import check_rate_limit
+from stripe_sync import reconcile_subscription
 
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
@@ -40,7 +41,10 @@ def _billing_ready(tier: str) -> tuple[str, str]:
 
 
 @router.get("/status")
-def billing_status(user: User = Depends(get_current_user)):
+def billing_status(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Heal drift (e.g. webhook delivery missed) straight from Stripe.
+    if reconcile_subscription(user):
+        db.commit()
     return {
         "billing_available": bool(STRIPE_SECRET_KEY and B2C_PRICE_ID and B2B_PRICE_ID),
         "subscription_tier": user.subscription_tier.value,
