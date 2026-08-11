@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from pydantic import BaseModel, ConfigDict
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
 from sqlalchemy.orm import Session
@@ -16,6 +17,11 @@ from security import check_rate_limit
 
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
+
+
+class ConfirmCheckoutRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    session_id: str
 
 
 def _billing_ready(tier: str) -> tuple[str, str]:
@@ -100,6 +106,91 @@ def billing_portal(request: Request, user: User = Depends(get_current_user)):
             detail="Billing portal is temporarily unavailable. Please try again.",
         ) from exc
     return {"url": portal.url}
+
+
+@router.post("/confirm")
+def confirm_checkout(
+    req: ConfirmCheckoutRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Synchronously activate a paid subscription after checkout returns to the app.
+
+    The client calls this with the Stripe checkout session id once the customer
+    is redirected back to /dashboard?billing=success&session_id=... so the plan
+    upgrades immediately, without waiting on webhook delivery. The session must
+    belong to the authenticated user and be a paid, completed subscription.
+    Re-confirming the same session id is a no-op.
+    """
+    check_rate_limit(request, max_requests=10, window=60, bucket="checkout-confirm")
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Billing is not configured for this deployment.",
+        )
+    if not req.session_id or not req.session_id.startswith("cs_"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid checkout session.",
+        )
+
+    # Idempotent: a confirmed session is never applied twice.
+    if db.query(RevenueEvent).filter(RevenueEvent.stripe_event_id == req.session_id).first():
+        return {
+            "subscription_tier": user.subscription_tier.value,
+            "subscription_active": bool(user.subscription_active),
+            "already_applied": True,
+        }
+
+    stripe.api_key = STRIPE_SECRET_KEY
+    try:
+        session = stripe.checkout.Session.retrieve(req.session_id)
+    except stripe.StripeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Checkout session could not be verified. Please try again.",
+        ) from exc
+
+    metadata = session.get("metadata") or {}
+    session_user_id = metadata.get("user_id") or session.get("client_reference_id")
+    if (
+        session.get("mode") != "subscription"
+        or session.get("payment_status") != "paid"
+        or session.get("status") != "complete"
+        or session_user_id != user.id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Checkout session does not correspond to a paid subscription for this account.",
+        )
+
+    tier = metadata.get("tier")
+    if tier not in {SubscriptionTier.b2c.value, SubscriptionTier.b2b.value}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Checkout session has no valid subscription tier.",
+        )
+
+    if user.subscription_tier.value != tier or not user.subscription_active:
+        user.subscription_tier = SubscriptionTier(tier)
+        user.subscription_active = True
+    user.stripe_customer_id = session.get("customer") or user.stripe_customer_id
+    db.add(
+        RevenueEvent(
+            user_id=user.id,
+            event_type="checkout_confirmed",
+            amount_cents=int(session.get("amount_total") or 0),
+            description=f"{tier} subscription activated",
+            stripe_event_id=req.session_id,
+        )
+    )
+    db.commit()
+    return {
+        "subscription_tier": user.subscription_tier.value,
+        "subscription_active": bool(user.subscription_active),
+        "already_applied": False,
+    }
 
 
 def _webhook_user(event_object: dict, db: Session) -> User | None:

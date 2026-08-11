@@ -8,12 +8,17 @@ import {
 } from "lucide-react";
 import { TableSkeleton } from "../../components/LoadingSkeleton";
 import { authorizedFetch } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 function getToken() {
   if (typeof window !== "undefined") return localStorage.getItem("token");
   return null;
+}
+
+function getStoredUser() {
+  try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
 }
 
 const domainIcons = { legal: Scale, financial: DollarSign, medical: Heart };
@@ -26,6 +31,7 @@ const statusIcons = { completed: CheckCircle, escalated: TriangleAlert, processi
 
 export default function Dashboard() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [user, setUser] = useState(null);
   const [queries, setQueries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,12 +41,39 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [activation, setActivation] = useState(null);
+
+  async function confirmCheckout(sessionId) {
+    try {
+      const res = await authorizedFetch(`${API}/subscriptions/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const nextUser = { ...getStoredUser(), subscription_tier: data.subscription_tier, subscription_active: data.subscription_active };
+        localStorage.setItem("user", JSON.stringify(nextUser));
+        setUser(nextUser);
+        setActivation({ ok: true, message: "Your subscription is active. Enjoy your expanded access!" });
+        refreshUser();
+      } else {
+        setActivation({ ok: false, message: "Could not confirm your subscription yet. The Stripe receipt should still arrive by email — check your billing settings shortly." });
+      }
+    } catch {
+      setActivation({ ok: false, message: "Could not confirm your subscription right now. Check your billing settings shortly." });
+    }
+  }
 
   useEffect(() => {
     const token = getToken();
     if (!token) { router.push("/signin"); return; }
-    try { setUser(JSON.parse(localStorage.getItem("user") || "{}")); } catch {}
+    setUser(getStoredUser());
     fetchQueries();
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("billing") === "success" && params.get("session_id")) {
+      confirmCheckout(params.get("session_id"));
+    }
   }, []);
 
   async function fetchQueries() {
@@ -138,6 +171,13 @@ export default function Dashboard() {
             </a>
           </div>
         </div>
+
+        {activation && (
+          <div className={`mb-6 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm ${activation.ok ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-200" : "bg-amber-500/10 border-amber-500/30 text-amber-200"}`}>
+            {activation.ok ? <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" /> : <TriangleAlert className="w-4 h-4 mt-0.5 shrink-0" />}
+            <span>{activation.message}</span>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">

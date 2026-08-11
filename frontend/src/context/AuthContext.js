@@ -164,6 +164,18 @@ export function AuthProvider({ children }) {
     });
   }, [apiCall]);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const data = await apiCall("/auth/me");
+      if (!data?.id) return null;
+      setUser(data);
+      localStorage.setItem("user", JSON.stringify(data));
+      return data;
+    } catch {
+      return null;
+    }
+  }, [apiCall]);
+
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = readStoredUser();
@@ -171,6 +183,19 @@ export function AuthProvider({ children }) {
     if (storedUser) setUser(storedUser);
     // Remove legacy script-readable refresh tokens as part of the cookie migration.
     localStorage.removeItem("refresh_token");
+    // Reconcile the cached profile with the server once on load so a stale
+    // localStorage snapshot (e.g. a plan purchased after sign-in) is corrected.
+    if (storedToken) {
+      fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${storedToken}` } })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && typeof data === "object" && data.id) {
+            setUser(data);
+            localStorage.setItem("user", JSON.stringify(data));
+          }
+        })
+        .catch(() => {});
+    }
     setLoading(false);
   }, []);
 
@@ -184,7 +209,8 @@ export function AuthProvider({ children }) {
     resetPassword,
     logout,
     apiCall,
-  }), [apiCall, forgotPassword, loading, logout, resetPassword, signin, signup, token, user]);
+    refreshUser,
+  }), [apiCall, forgotPassword, loading, logout, refreshUser, resetPassword, signin, signup, token, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

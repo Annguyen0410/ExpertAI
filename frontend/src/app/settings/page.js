@@ -60,7 +60,14 @@ export default function Settings() {
   async function fetchBilling() {
     try {
       const res = await authorizedFetch(`${API}/auth/billing`);
-      if (res.ok) setBilling(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setBilling(data);
+        // Keep the cached profile honest so every page reflects the real plan.
+        const nextUser = { ...getStoredUser(), subscription_tier: data.subscription_tier, subscription_active: data.subscription_active };
+        setUser(nextUser);
+        localStorage.setItem("user", JSON.stringify(nextUser));
+      }
     } catch {}
   }
 
@@ -139,7 +146,7 @@ export default function Settings() {
         <span className="font-bold">Settings</span>
       </header>
       <div className="max-w-4xl mx-auto px-6 py-8">
-        <div className="flex gap-2 mb-8">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:gap-2 mb-8">
           {[
             { id: "profile", label: "Profile", icon: User },
             { id: "password", label: "Password", icon: Lock },
@@ -149,7 +156,7 @@ export default function Settings() {
             const Icon = t.icon;
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}>
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}>
                 <Icon className="w-4 h-4" /> {t.label}
               </button>
             );
@@ -270,30 +277,34 @@ export default function Settings() {
         {tab === "billing" && (
           <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><DollarSign className="w-5 h-5 text-indigo-400" /> Billing History</h2>
-            <div className="flex items-center gap-3 mb-6 p-4 bg-slate-800/50 rounded-xl flex-wrap">
-              <span className="text-sm text-slate-400">Current plan:</span>
-              <span className="font-semibold capitalize">{billing?.subscription_tier || "free"}</span>
-              {(billing?.subscription_tier || "free") === "free" ? (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
-                  Free plan — {usage?.queries_remaining ?? 0} of {usage?.quota_limit ?? 3} questions left
-                </span>
-              ) : (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${billing?.subscription_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
-                  {billing?.subscription_active ? "Active" : "Inactive"}
-                </span>
-              )}
-              {billing?.subscription_active && (
-                <button
-                  type="button"
-                  onClick={openPortal}
-                  disabled={portalLoading}
-                  className="ml-auto flex items-center gap-2 text-xs bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-3 py-1.5 rounded-lg font-medium"
-                >
-                  {portalLoading ? <Loader className="w-3.5 h-3.5 animate-spin" /> : <DollarSign className="w-3.5 h-3.5" />}
-                  {portalLoading ? "Opening..." : "Manage subscription"}
-                </button>
-              )}
-              <a href="/pricing" className="text-xs text-indigo-400 hover:text-indigo-300 ml-3">Change plan →</a>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 p-4 bg-slate-800/50 rounded-xl">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-sm text-slate-400">Current plan:</span>
+                <span className="font-semibold capitalize">{billing?.subscription_tier || "free"}</span>
+                {(billing?.subscription_tier || "free") === "free" ? (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                    Free plan — {usage?.queries_remaining ?? 0} of {usage?.quota_limit ?? 3} questions left
+                  </span>
+                ) : (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${billing?.subscription_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
+                    {billing?.subscription_active ? "Active" : "Inactive"}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row sm:ml-auto gap-2">
+                {(billing?.subscription_active || (billing?.subscription_tier && billing.subscription_tier !== "free")) && (
+                  <button
+                    type="button"
+                    onClick={openPortal}
+                    disabled={portalLoading}
+                    className="flex items-center justify-center gap-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 rounded-lg font-medium"
+                  >
+                    {portalLoading ? <Loader className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+                    {portalLoading ? "Opening..." : "Manage or cancel subscription"}
+                  </button>
+                )}
+                <a href="/pricing" className="text-sm text-indigo-400 hover:text-indigo-300 px-4 py-2 text-center">Change plan →</a>
+              </div>
             </div>
             {billing?.events?.length > 0 ? (
               <div className="space-y-2">
