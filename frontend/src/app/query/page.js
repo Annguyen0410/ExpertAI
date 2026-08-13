@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Bot, Scale, DollarSign, Heart, Send, ArrowLeft, Loader, FileText, Sparkles, History, Trash2, TriangleAlert } from "lucide-react";
+import { Bot, Send, ArrowLeft, Loader, FileText, Sparkles, History, Trash2, TriangleAlert } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { authorizedFetch } from "../../lib/api";
+import ThemeToggle from "../../components/ThemeToggle";
+import DomainBadge from "../../components/DomainBadge";
+import { DOMAINS } from "../../lib/domains";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -14,12 +17,6 @@ function getToken() {
 }
 
 const DRAFT_KEY = "expertai_draft";
-
-const domains = [
-  { id: "legal", label: "Legal", icon: Scale, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/30" },
-  { id: "financial", label: "Financial", icon: DollarSign, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
-  { id: "medical", label: "Medical", icon: Heart, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/30" },
-];
 
 const TEMPLATES = [
   { domain: "legal", label: "Review a Lease", prompt: "I need to review a residential lease agreement. What are the key clauses I should look out for, and what are common red flags?" },
@@ -52,6 +49,7 @@ export default function NewQuery() {
     if (draft) {
       try {
         const parsed = JSON.parse(draft);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- restore a locally saved draft once on mount
         setSavedDraft(parsed);
         if (!content) {
           setContent(parsed.content || "");
@@ -143,17 +141,20 @@ export default function NewQuery() {
     : null;
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-slate-800">
-        <a href="/dashboard" className="text-slate-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></a>
-        <Bot className="w-6 h-6 text-indigo-400" />
-        <span className="font-bold">New Query</span>
+    <div className="min-h-screen bg-bg">
+      <header className="flex items-center gap-4 px-6 py-4 border-b border-line">
+        <a href="/dashboard" className="text-ink-2 hover:text-ink"><ArrowLeft className="w-5 h-5" /></a>
+        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-md shadow-primary/25">
+          <Bot className="w-4 h-4 text-white" />
+        </span>
+        <span className="font-bold tracking-tight">New Query</span>
         <div className="flex-1" />
+        <ThemeToggle />
         {savedDraft && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-400 flex items-center gap-1"><History className="w-3 h-3" /> Draft saved</span>
-            <button onClick={restoreDraft} className="text-xs text-indigo-400 hover:text-indigo-300">Restore</button>
-            <button onClick={clearDraft} className="text-xs text-slate-500 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1"><History className="w-3 h-3" /> Draft saved</span>
+            <button onClick={restoreDraft} className="text-xs text-primary hover:text-primary-strong">Restore</button>
+            <button onClick={clearDraft} className="text-xs text-ink-3 hover:text-rose-500 dark:hover:text-rose-400"><Trash2 className="w-3 h-3" /></button>
           </div>
         )}
       </header>
@@ -161,35 +162,35 @@ export default function NewQuery() {
       <main className="max-w-3xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Ask a Professional Question</h1>
-            <p className="text-slate-400 mt-1">Get AI-powered guidance on legal, financial, or medical topics.</p>
+            <h1 className="font-display text-2xl font-semibold">Ask a Professional Question</h1>
+            <p className="text-ink-2 mt-1">Get AI-powered guidance on legal, financial, or medical topics.</p>
             {freeQuotaLabel && (
-              <p className="text-sm text-indigo-300 mt-2">{freeQuotaLabel}</p>
+              <p className="text-sm text-primary mt-2">{freeQuotaLabel}</p>
             )}
           </div>
           <button onClick={() => setShowTemplates(!showTemplates)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sm font-medium transition-all">
-            <Sparkles className="w-4 h-4 text-amber-400" /> Templates
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-sm font-medium transition-all">
+            <Sparkles className="w-4 h-4 text-accent" /> Templates
           </button>
         </div>
 
         {showTemplates && (
-          <div className="mb-6 bg-slate-900 border border-slate-800 rounded-2xl p-5">
+          <div className="mb-6 bg-surface border border-line rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4 text-indigo-400" /> Quick Templates</h3>
-              <button onClick={() => setShowTemplates(false)} className="text-xs text-slate-500 hover:text-white">Close</button>
+              <h3 className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Quick Templates</h3>
+              <button onClick={() => setShowTemplates(false)} className="text-xs text-ink-3 hover:text-ink">Close</button>
             </div>
             <div className="grid md:grid-cols-3 gap-2">
               {TEMPLATES.map((t, i) => {
-                const domain = domains.find((d) => d.id === t.domain);
+                const domain = DOMAINS.find((d) => d.id === t.domain);
                 const Icon = domain?.icon || Bot;
                 return (
                   <button key={i} onClick={() => applyTemplate(t)}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 text-left transition-all group">
-                    <Icon className={`w-4 h-4 mt-0.5 ${domain?.color || "text-slate-400"}`} />
+                    className="flex items-start gap-3 p-3 rounded-xl bg-surface-2/60 hover:bg-surface-2 border border-line text-left transition-all group">
+                    <Icon className={`w-4 h-4 mt-0.5 ${domain?.text || "text-ink-2"}`} />
                     <div>
-                      <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{t.label}</p>
-                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{t.prompt.substring(0, 60)}...</p>
+                      <p className="text-sm font-medium text-ink group-hover:text-ink transition-colors">{t.label}</p>
+                      <p className="text-xs text-ink-3 mt-0.5 line-clamp-2">{t.prompt.substring(0, 60)}...</p>
                     </div>
                   </button>
                 );
@@ -200,16 +201,16 @@ export default function NewQuery() {
 
         <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
           <button onClick={() => setSelectedDomain(null)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${selectedDomain === null ? "bg-indigo-600/20 border-indigo-500/30 text-indigo-300" : "bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600"}`}>
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${selectedDomain === null ? "bg-primary/15 border-primary/30 text-primary" : "bg-surface border-line text-ink-2 hover:border-ink-3"}`}>
             <Bot className="w-4 h-4" /> Auto-Detect
           </button>
-          {domains.map((d) => {
+          {DOMAINS.map((d) => {
             const Icon = d.icon;
             const isSelected = selectedDomain === d.id;
             return (
               <button key={d.id} onClick={() => setSelectedDomain(d.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${isSelected ? `${d.bg} ${d.border} ${d.color}` : "bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600"}`}>
-                <Icon className="w-4 h-4" /> {d.label}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${isSelected ? `${d.bg} ${d.border} ${d.text}` : "bg-surface border-line text-ink-2 hover:border-ink-3"}`}>
+                <Icon className="w-4 h-4" /> {d.expertLabel}
               </button>
             );
           })}
@@ -218,27 +219,27 @@ export default function NewQuery() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <textarea value={content} onChange={(e) => setContent(e.target.value)}
             placeholder="Describe your question in detail. For example: 'I need to review a residential lease agreement I received from my landlord. What key clauses should I look out for?'"
-            rows={6} className="w-full px-5 py-4 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none" />
+            rows={6} className="w-full px-5 py-4 rounded-2xl bg-surface-2 border border-line text-ink placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <p className="text-xs text-slate-500">{selectedDomain ? `Querying ${selectedDomain} agent` : "AI will detect the domain automatically"}</p>
-              {content.length > 0 && <span className="text-xs text-slate-600">{content.length} chars</span>}
+              <p className="text-xs text-ink-3">{selectedDomain ? `Querying ${selectedDomain} agent` : "AI will detect the domain automatically"}</p>
+              {content.length > 0 && <span className="text-xs text-ink-3">{content.length} chars</span>}
             </div>
             <button type="submit" disabled={loading || !content.trim()}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
+              className="flex items-center gap-2 bg-primary hover:bg-primary-strong disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
               {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               {loading ? "Processing..." : "Submit"}
             </button>
           </div>
         </form>
 
-        {error && <div className="mt-6 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl">{error}</div>}
+        {error && <div className="mt-6 bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 text-sm p-4 rounded-xl">{error}</div>}
 
         {showUpgrade && (
-          <div className="mt-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 p-6 space-y-3">
-            <h2 className="text-lg font-semibold text-indigo-100">You&apos;ve used your 3 free questions</h2>
-            <p className="text-sm text-slate-300">Your question is still on this page. Upgrade to Pro to send it and keep asking.</p>
-            <a href="/pricing" className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 px-5 py-2.5 rounded-xl text-sm font-medium">
+          <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 p-6 space-y-3">
+            <h2 className="text-lg font-semibold text-primary">You&apos;ve used your 3 free questions</h2>
+            <p className="text-sm text-ink-2">Your question is still on this page. Upgrade to Pro to send it and keep asking.</p>
+            <a href="/pricing" className="inline-flex items-center gap-2 bg-primary hover:bg-primary-strong px-5 py-2.5 rounded-xl text-sm font-medium">
               Upgrade to send this
             </a>
           </div>
@@ -246,17 +247,15 @@ export default function NewQuery() {
 
         {result && (
           <div className="mt-8 space-y-4">
-            <div className="flex items-center gap-3 text-sm text-slate-400">
-              <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${result.domain === "legal" ? "bg-blue-500/10 text-blue-400" : result.domain === "financial" ? "bg-emerald-500/10 text-emerald-400" : result.domain === "medical" ? "bg-rose-500/10 text-rose-400" : "bg-slate-500/10 text-slate-400"}`}>
-                {result.domain}
-              </span>
+            <div className="flex items-center gap-3 text-sm text-ink-2 flex-wrap">
+              <DomainBadge domain={result.domain} />
               {result.complexity_score && <span>Complexity: {(result.complexity_score * 100).toFixed(0)}%</span>}
-              {result.is_escalated && <span className="text-amber-400 flex items-center gap-1"><TriangleAlert className="w-4 h-4" /> Escalated: {result.escalation_reason}</span>}
+              {result.is_escalated && <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1"><TriangleAlert className="w-4 h-4" /> Escalated: {result.escalation_reason}</span>}
             </div>
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-              <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">{result.response}</div>
+            <div className="bg-surface border border-line rounded-2xl p-6">
+              <div className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{result.response}</div>
             </div>
-            <a href={`/query/${result.query_id}`} className="inline-flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300">
+            <a href={`/query/${result.query_id}`} className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-strong">
               View full conversation →
             </a>
           </div>

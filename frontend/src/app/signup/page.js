@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bot, Shield, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import ThemeToggle from "../../components/ThemeToggle";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function SignUpPage() {
     const fromStorage = (localStorage.getItem("expertai_signup_email") || "").trim().toLowerCase();
     const prefill = fromQuery || fromStorage;
     if (prefill) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill the email from the signup entry URL on mount
       setForm((current) => (current.email ? current : { ...current, email: prefill }));
       localStorage.removeItem("expertai_signup_email");
     }
@@ -62,97 +64,105 @@ export default function SignUpPage() {
   const existingAccount = /already exists/i.test(error);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen relative flex items-center justify-center px-4 py-10 overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-legal/10 pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-legal/10 blur-3xl pointer-events-none" />
+      <div className="absolute top-4 right-4"><ThemeToggle /></div>
+      <div className="w-full max-w-sm relative">
         <div className="text-center mb-8">
-          <Bot className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-          <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="text-slate-400 text-sm mt-1">Start with a free tier, no credit card needed</p>
+          <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-legal shadow-lg shadow-primary/25 mb-3">
+            <Bot className="w-6 h-6 text-white" />
+          </span>
+          <h1 className="font-display text-2xl font-semibold">Create your account</h1>
+          <p className="text-ink-2 text-sm mt-1">Start with a free tier, no credit card needed</p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div role="alert" className="rounded-xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
-              <p>{error}</p>
-              {existingAccount && (
-                <p className="mt-2">
-                  <Link href="/signin" className="text-indigo-300 hover:underline">
-                    Sign in instead?
-                  </Link>
+        <div className="bg-surface border border-line rounded-2xl p-8 shadow-xl shadow-ink/5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
+                <p>{error}</p>
+                {existingAccount && (
+                  <p className="mt-2">
+                    <Link href="/signin" className="text-primary hover:underline">
+                      Sign in instead?
+                    </Link>
+                  </p>
+                )}
+              </div>
+            )}
+            <div>
+              <label className="text-sm text-ink-2 mb-1 block">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-3 w-5 h-5" />
+                <input
+                  type="text"
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full px-10 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="John Doe"
+                  maxLength={100}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-ink-2 mb-1 block">Email</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="you@example.com"
+              />
+            </div>
+            <div>
+              <label className="text-sm text-ink-2 mb-1 block">Password</label>
+              <input
+                type="password"
+                required
+                minLength={12}
+                maxLength={128}
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="At least 12 characters with upper, lower, number"
+              />
+              <p className="text-xs text-ink-3 mt-1">Must be 12+ chars with uppercase, lowercase, and number</p>
+            </div>
+            <div>
+              <label className="text-sm text-ink-2 mb-1 block">I am a...</label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="individual">Individual seeking guidance</option>
+                <option value="professional">Professional (Lawyer/CPA/Doctor)</option>
+              </select>
+              {form.role === "professional" && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Professional accounts require an invitation. You can create an individual account now and upgrade later.
                 </p>
               )}
             </div>
-          )}
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">Full Name</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 w-5 h-5" />
-              <input
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-10 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="John Doe"
-                maxLength={100}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">Email</label>
-            <input
-              type="email"
-              required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">Password</label>
-            <input
-              type="password"
-              required
-              minLength={12}
-              maxLength={128}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="At least 12 characters with upper, lower, number"
-            />
-            <p className="text-xs text-slate-500 mt-1">Must be 12+ chars with uppercase, lowercase, and number</p>
-          </div>
-          <div>
-            <label className="text-sm text-slate-400 mb-1 block">I am a...</label>
-            <select
-              value={form.role}
-              onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-primary hover:bg-primary-strong disabled:opacity-50 py-3 rounded-xl font-semibold transition-all"
             >
-              <option value="individual">Individual seeking guidance</option>
-              <option value="professional">Professional (Lawyer/CPA/Doctor)</option>
-            </select>
-            {form.role === "professional" && (
-              <p className="text-xs text-amber-400/90 mt-1">
-                Professional accounts require an invitation. You can create an individual account now and upgrade later.
-              </p>
-            )}
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 py-3 rounded-xl font-semibold transition-all"
-          >
-            {loading ? "Creating account..." : "Create Account"}
-          </button>
-        </form>
-        <p className="text-center text-sm text-slate-500 mt-6">
+              {loading ? "Creating account..." : "Create Account"}
+            </button>
+          </form>
+        </div>
+        <p className="text-center text-sm text-ink-2 mt-6">
           Already have an account?{" "}
-          <Link href="/signin" className="text-indigo-400 hover:underline">
+          <Link href="/signin" className="text-primary hover:underline">
             Sign in
           </Link>
         </p>
-        <p className="text-center text-xs text-slate-600 mt-4">
+        <p className="text-center text-xs text-ink-3 mt-4">
           <Shield className="w-3 h-3 inline-block mr-1" /> Protected by rate limiting & encryption
         </p>
       </div>

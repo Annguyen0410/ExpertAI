@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Bot, ArrowLeft, User, Lock, TrendingUp, DollarSign, Save, Loader } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { authorizedFetch, extractApiError } from "../../lib/api";
+import ThemeToggle from "../../components/ThemeToggle";
+import { DOMAINS } from "../../lib/domains";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -31,13 +33,6 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState(null);
-
-  useEffect(() => {
-    if (!getToken()) { router.push("/signin"); return; }
-    fetchUser();
-    fetchUsage();
-    fetchBilling();
-  }, []);
 
   async function fetchUser() {
     try {
@@ -70,6 +65,14 @@ export default function Settings() {
       }
     } catch {}
   }
+
+  useEffect(() => {
+    if (!getToken()) { router.push("/signin"); return; }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch profile, usage, and billing once on mount
+    fetchUser();
+    fetchUsage();
+    fetchBilling();
+  }, []);
 
   async function updateProfile(e) {
     e.preventDefault();
@@ -139,11 +142,15 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-slate-800">
-        <a href="/dashboard" className="text-slate-400 hover:text-white"><ArrowLeft className="w-5 h-5" /></a>
-        <Bot className="w-6 h-6 text-indigo-400" />
-        <span className="font-bold">Settings</span>
+    <div className="min-h-screen bg-bg">
+      <header className="flex items-center gap-4 px-6 py-4 border-b border-line">
+        <a href="/dashboard" className="text-ink-2 hover:text-ink"><ArrowLeft className="w-5 h-5" /></a>
+        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-md shadow-primary/25">
+          <Bot className="w-4 h-4 text-white" />
+        </span>
+        <span className="font-bold tracking-tight">Settings</span>
+        <div className="flex-1" />
+        <ThemeToggle />
       </header>
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:gap-2 mb-8">
@@ -156,7 +163,7 @@ export default function Settings() {
             const Icon = t.icon;
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400 hover:bg-slate-700"}`}>
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${tab === t.id ? "bg-primary text-white" : "bg-surface-2 text-ink-2 hover:text-ink border border-line"}`}>
                 <Icon className="w-4 h-4" /> {t.label}
               </button>
             );
@@ -164,15 +171,15 @@ export default function Settings() {
         </div>
 
         {tab === "profile" && (
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><User className="w-5 h-5 text-indigo-400" /> Profile</h2>
+          <div className="bg-surface rounded-2xl border border-line p-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><User className="w-5 h-5 text-primary" /> Profile</h2>
             <form onSubmit={updateProfile} className="space-y-4 max-w-md">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Email</label>
-                <input type="email" value={user.email || ""} disabled className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-400 cursor-not-allowed" />
+                <label className="text-sm text-ink-2 mb-1 block">Email</label>
+                <input type="email" value={user.email || ""} disabled className="w-full px-4 py-3 rounded-xl bg-surface-2/50 border border-line text-ink-3 cursor-not-allowed" />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Name</label>
+                <label className="text-sm text-ink-2 mb-1 block">Name</label>
                 <input
                   type="text"
                   value={name}
@@ -180,26 +187,26 @@ export default function Settings() {
                     setName(e.target.value);
                     if (profileFeedback) setProfileFeedback(null);
                   }}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Role</label>
-                <input type="text" value={user.role || ""} disabled className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-400 cursor-not-allowed capitalize" />
+                <label className="text-sm text-ink-2 mb-1 block">Role</label>
+                <input type="text" value={user.role || ""} disabled className="w-full px-4 py-3 rounded-xl bg-surface-2/50 border border-line text-ink-3 cursor-not-allowed capitalize" />
               </div>
               {profileFeedback && (
                 <p
                   role="status"
                   className={`text-sm rounded-xl px-4 py-3 border ${
                     profileFeedback.type === "success"
-                      ? "bg-emerald-950/60 border-emerald-500/30 text-emerald-200"
-                      : "bg-red-950/60 border-red-500/30 text-red-200"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                      : "bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400"
                   }`}
                 >
                   {profileFeedback.message}
                 </p>
               )}
-              <button type="submit" disabled={saving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
+              <button type="submit" disabled={saving} className="flex items-center gap-2 bg-primary hover:bg-primary-strong disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
                 {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? "Saving..." : "Save Changes"}
               </button>
@@ -208,23 +215,23 @@ export default function Settings() {
         )}
 
         {tab === "password" && (
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Lock className="w-5 h-5 text-indigo-400" /> Change Password</h2>
+          <div className="bg-surface rounded-2xl border border-line p-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><Lock className="w-5 h-5 text-primary" /> Change Password</h2>
             <form onSubmit={changePassword} className="space-y-4 max-w-md">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Current Password</label>
-                <input type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label className="text-sm text-ink-2 mb-1 block">Current Password</label>
+                <input type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} required className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">New Password</label>
-                <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                <p className="text-xs text-slate-500 mt-1">Must be 12+ chars with uppercase, lowercase, and number</p>
+                <label className="text-sm text-ink-2 mb-1 block">New Password</label>
+                <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary" />
+                <p className="text-xs text-ink-3 mt-1">Must be 12+ chars with uppercase, lowercase, and number</p>
               </div>
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Confirm New Password</label>
-                <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <label className="text-sm text-ink-2 mb-1 block">Confirm New Password</label>
+                <input type="password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} required minLength={12} maxLength={128} className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary" />
               </div>
-              <button type="submit" disabled={saving} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
+              <button type="submit" disabled={saving} className="flex items-center gap-2 bg-primary hover:bg-primary-strong disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
                 {saving ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {saving ? "Changing..." : "Change Password"}
               </button>
@@ -234,39 +241,42 @@ export default function Settings() {
 
         {tab === "usage" && (
           <div className="space-y-6">
-            <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8">
-              <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-indigo-400" /> My Usage</h2>
+            <div className="bg-surface rounded-2xl border border-line p-8">
+              <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" /> My Usage</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-indigo-400">{usage?.total_queries || 0}</p>
-                  <p className="text-xs text-slate-500">Total Queries</p>
+                <div className="bg-surface-2/60 rounded-xl p-4 text-center border border-line">
+                  <p className="text-3xl font-bold text-primary">{usage?.total_queries || 0}</p>
+                  <p className="text-xs text-ink-3">Total Queries</p>
                 </div>
-                <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-emerald-400">{usage?.completed || 0}</p>
-                  <p className="text-xs text-slate-500">Completed</p>
+                <div className="bg-surface-2/60 rounded-xl p-4 text-center border border-line">
+                  <p className="text-3xl font-bold text-financial">{usage?.completed || 0}</p>
+                  <p className="text-xs text-ink-3">Completed</p>
                 </div>
-                <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-amber-400">{usage?.escalated || 0}</p>
-                  <p className="text-xs text-slate-500">Escalated</p>
+                <div className="bg-surface-2/60 rounded-xl p-4 text-center border border-line">
+                  <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">{usage?.escalated || 0}</p>
+                  <p className="text-xs text-ink-3">Escalated</p>
                 </div>
-                <div className="bg-slate-800/50 rounded-xl p-4 text-center">
-                  <p className="text-3xl font-bold text-cyan-400">{usage?.queries_remaining !== null ? usage.queries_remaining : "∞"}</p>
-                  <p className="text-xs text-slate-500">Queries Left</p>
+                <div className="bg-surface-2/60 rounded-xl p-4 text-center border border-line">
+                  <p className="text-3xl font-bold text-legal">{usage?.queries_remaining !== null ? usage.queries_remaining : "∞"}</p>
+                  <p className="text-xs text-ink-3">Queries Left</p>
                 </div>
               </div>
               {usage?.queries_by_domain && Object.keys(usage.queries_by_domain).length > 0 && (
                 <div>
-                  <p className="text-sm text-slate-400 mb-3">By Domain</p>
+                  <p className="text-sm text-ink-2 mb-3">By Domain</p>
                   <div className="space-y-2">
-                    {Object.entries(usage.queries_by_domain).map(([domain, count]) => (
-                      <div key={domain} className="flex items-center gap-3">
-                        <span className="text-sm capitalize w-24 text-slate-300">{domain}</span>
-                        <div className="flex-1 bg-slate-800 rounded-full h-2">
-                          <div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${(count / usage.total_queries) * 100}%` }} />
+                    {Object.entries(usage.queries_by_domain).map(([domain, count]) => {
+                      const meta = DOMAINS.find((d) => d.id === domain);
+                      return (
+                        <div key={domain} className="flex items-center gap-3">
+                          <span className="text-sm capitalize w-24 text-ink">{meta?.expertLabel || domain}</span>
+                          <div className="flex-1 bg-surface-2 rounded-full h-2">
+                            <div className={`${meta?.solid || "bg-primary"} h-2 rounded-full`} style={{ width: `${(count / usage.total_queries) * 100}%` }} />
+                          </div>
+                          <span className="text-sm text-ink-3">{count}</span>
                         </div>
-                        <span className="text-sm text-slate-500">{count}</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -275,18 +285,18 @@ export default function Settings() {
         )}
 
         {tab === "billing" && (
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 p-8">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><DollarSign className="w-5 h-5 text-indigo-400" /> Billing History</h2>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 p-4 bg-slate-800/50 rounded-xl">
+          <div className="bg-surface rounded-2xl border border-line p-8">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2"><DollarSign className="w-5 h-5 text-primary" /> Billing History</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 p-4 bg-surface-2/60 rounded-xl border border-line">
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm text-slate-400">Current plan:</span>
+                <span className="text-sm text-ink-2">Current plan:</span>
                 <span className="font-semibold capitalize">{billing?.subscription_tier || "free"}</span>
                 {(billing?.subscription_tier || "free") === "free" ? (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-surface-2 border border-line text-ink-2">
                     Free plan — {usage?.queries_remaining ?? 0} of {usage?.quota_limit ?? 3} questions left
                   </span>
                 ) : (
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${billing?.subscription_active ? "bg-emerald-500/10 text-emerald-300" : "bg-slate-700 text-slate-400"}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${billing?.subscription_active ? "bg-financial/10 text-financial border-financial/25" : "bg-surface-2 text-ink-2 border-line"}`}>
                     {billing?.subscription_active ? "Active" : "Inactive"}
                   </span>
                 )}
@@ -297,33 +307,33 @@ export default function Settings() {
                     type="button"
                     onClick={openPortal}
                     disabled={portalLoading}
-                    className="flex items-center justify-center gap-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 px-4 py-2 rounded-lg font-medium"
+                    className="flex items-center justify-center gap-2 text-sm bg-primary hover:bg-primary-strong disabled:opacity-50 px-4 py-2 rounded-lg font-medium"
                   >
                     {portalLoading ? <Loader className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
                     {portalLoading ? "Opening..." : "Manage or cancel subscription"}
                   </button>
                 )}
-                <a href="/pricing" className="text-sm text-indigo-400 hover:text-indigo-300 px-4 py-2 text-center">Change plan →</a>
+                <a href="/pricing" className="text-sm text-primary hover:text-primary-strong px-4 py-2 text-center">Change plan →</a>
               </div>
             </div>
             {billing?.events?.length > 0 ? (
               <div className="space-y-2">
                 {billing.events.map((ev) => (
-                  <div key={ev.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 text-sm">
+                  <div key={ev.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-2/60 border border-line text-sm">
                     <div>
-                      <span className="text-slate-200 capitalize">{ev.event_type?.replace(/_/g, " ")}</span>
-                      {ev.description && <p className="text-xs text-slate-500">{ev.description}</p>}
+                      <span className="text-ink capitalize">{ev.event_type?.replace(/_/g, " ")}</span>
+                      {ev.description && <p className="text-xs text-ink-3">{ev.description}</p>}
                     </div>
                     <div className="text-right">
-                      <span className="text-emerald-400 font-mono font-semibold">${ev.amount_dollars}</span>
-                      <p className="text-xs text-slate-500">{new Date(ev.created_at).toLocaleDateString()}</p>
+                      <span className="text-financial font-mono font-semibold">${ev.amount_dollars}</span>
+                      <p className="text-xs text-ink-3">{new Date(ev.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-slate-500">
-                <DollarSign className="w-12 h-12 mx-auto mb-3 text-slate-700" />
+              <div className="text-center py-12 text-ink-3">
+                <DollarSign className="w-12 h-12 mx-auto mb-3 text-ink-3/40" />
                 <p>No billing history yet</p>
               </div>
             )}

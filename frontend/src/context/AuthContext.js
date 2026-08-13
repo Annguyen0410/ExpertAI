@@ -179,6 +179,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = readStoredUser();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- rehydrate the session from localStorage once on mount
     if (storedToken) setToken(storedToken);
     if (storedUser) setUser(storedUser);
     // Remove legacy script-readable refresh tokens as part of the cookie migration.
