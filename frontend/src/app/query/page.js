@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bot, Send, ArrowLeft, Loader, FileText, Sparkles, History, Trash2, TriangleAlert } from "lucide-react";
+import { Bot, Send, ArrowLeft, Loader, FileText, Sparkles, History, Trash2, TriangleAlert, Check, ChevronRight, Gauge } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
 import { authorizedFetch } from "../../lib/api";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -136,46 +137,61 @@ export default function NewQuery() {
     }
   }
 
-  const freeQuotaLabel = usage?.quota_limit != null
-    ? `${Math.max(0, (usage.quota_limit || 0) - (usage.total_queries || 0))} of ${usage.quota_limit} free questions left`
-    : null;
+  const remaining = usage?.quota_limit != null ? Math.max(0, (usage.quota_limit || 0) - (usage.total_queries || 0)) : null;
+  const quotaPct = usage?.quota_limit ? Math.round((remaining / usage.quota_limit) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-bg">
-      <header className="flex items-center gap-4 px-6 py-4 border-b border-line">
-        <a href="/dashboard" className="text-ink-2 hover:text-ink"><ArrowLeft className="w-5 h-5" /></a>
-        <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-md shadow-primary/25">
-          <Bot className="w-4 h-4 text-white" />
-        </span>
-        <span className="font-bold tracking-tight">New Query</span>
-        <div className="flex-1" />
-        <ThemeToggle />
-        {savedDraft && (
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1"><History className="w-3 h-3" /> Draft saved</span>
-            <button onClick={restoreDraft} className="text-xs text-primary hover:text-primary-strong">Restore</button>
-            <button onClick={clearDraft} className="text-xs text-ink-3 hover:text-rose-500 dark:hover:text-rose-400"><Trash2 className="w-3 h-3" /></button>
-          </div>
-        )}
+      <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur px-6 py-4">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
+          <Link href="/dashboard" className="p-2 -ml-2 rounded-lg text-ink-2 hover:text-ink hover:bg-surface-2 transition-colors" aria-label="Back to dashboard"><ArrowLeft className="w-5 h-5" /></Link>
+          <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-md shadow-primary/25">
+            <Bot className="w-4.5 h-4.5 text-white" />
+          </span>
+          <span className="font-bold tracking-tight text-lg">New Query</span>
+          <div className="flex-1" />
+          <ThemeToggle />
+          {savedDraft && (
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1"><History className="w-3 h-3" /> Draft saved</span>
+              <button onClick={restoreDraft} className="text-xs text-primary hover:text-primary-strong">Restore</button>
+              <button onClick={clearDraft} className="text-xs text-ink-3 hover:text-rose-500 dark:hover:text-rose-400"><Trash2 className="w-3 h-3" /></button>
+            </div>
+          )}
+        </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 animate-fade-up">
           <div>
-            <h1 className="font-display text-2xl font-semibold">Ask a Professional Question</h1>
+            <h1 className="font-display text-2xl md:text-3xl font-semibold">Ask a Professional Question</h1>
             <p className="text-ink-2 mt-1">Get AI-powered guidance on legal, financial, or medical topics.</p>
-            {freeQuotaLabel && (
-              <p className="text-sm text-primary mt-2">{freeQuotaLabel}</p>
-            )}
           </div>
           <button onClick={() => setShowTemplates(!showTemplates)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-2 hover:bg-surface border border-line text-sm font-medium transition-all">
-            <Sparkles className="w-4 h-4 text-accent" /> Templates
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${showTemplates ? "bg-accent/10 border-accent/30 text-accent" : "bg-surface-2 hover:bg-surface border-line hover:border-ink-3"}`}>
+            <Sparkles className="w-4 h-4" /> Templates
           </button>
         </div>
 
+        {remaining !== null && (
+          <div className="mb-6 rounded-2xl bg-surface border border-line p-4 flex items-center gap-4 animate-fade-up delay-1">
+            <span className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
+              <Gauge className="w-5 h-5" />
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-sm font-medium">Free questions remaining</p>
+                <p className="text-sm font-semibold text-primary">{remaining} / {usage.quota_limit}</p>
+              </div>
+              <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
+                <span className="block h-full rounded-full bg-gradient-to-r from-primary to-legal transition-all duration-700" style={{ width: `${quotaPct}%` }} />
+              </div>
+            </div>
+          </div>
+        )}
+
         {showTemplates && (
-          <div className="mb-6 bg-surface border border-line rounded-2xl p-5">
+          <div className="mb-6 bg-surface border border-line rounded-2xl p-5 animate-fade-up">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold flex items-center gap-2"><FileText className="w-4 h-4 text-primary" /> Quick Templates</h3>
               <button onClick={() => setShowTemplates(false)} className="text-xs text-ink-3 hover:text-ink">Close</button>
@@ -186,10 +202,12 @@ export default function NewQuery() {
                 const Icon = domain?.icon || Bot;
                 return (
                   <button key={i} onClick={() => applyTemplate(t)}
-                    className="flex items-start gap-3 p-3 rounded-xl bg-surface-2/60 hover:bg-surface-2 border border-line text-left transition-all group">
-                    <Icon className={`w-4 h-4 mt-0.5 ${domain?.text || "text-ink-2"}`} />
-                    <div>
-                      <p className="text-sm font-medium text-ink group-hover:text-ink transition-colors">{t.label}</p>
+                    className="group flex items-start gap-3 p-3 rounded-xl bg-surface-2/60 hover:bg-surface-2 border border-line text-left transition-all hover:-translate-y-0.5 hover:shadow-md hover:shadow-ink/5">
+                    <span className={`w-8 h-8 rounded-lg ${domain?.bg || "bg-surface-2"} ${domain?.border || "border-line"} border flex items-center justify-center shrink-0 transition-transform group-hover:scale-110`}>
+                      <Icon className={`w-4 h-4 ${domain?.text || "text-ink-2"}`} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-ink group-hover:text-primary transition-colors">{t.label}</p>
                       <p className="text-xs text-ink-3 mt-0.5 line-clamp-2">{t.prompt.substring(0, 60)}...</p>
                     </div>
                   </button>
@@ -199,65 +217,78 @@ export default function NewQuery() {
           </div>
         )}
 
-        <div className="flex gap-3 mb-8 overflow-x-auto pb-2">
+        <div className="flex gap-3 mb-8 overflow-x-auto pb-2 animate-fade-up delay-2">
           <button onClick={() => setSelectedDomain(null)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${selectedDomain === null ? "bg-primary/15 border-primary/30 text-primary" : "bg-surface border-line text-ink-2 hover:border-ink-3"}`}>
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${selectedDomain === null ? "bg-primary/15 border-primary/30 text-primary shadow-md shadow-primary/10" : "bg-surface border-line text-ink-2 hover:border-ink-3"}`}>
             <Bot className="w-4 h-4" /> Auto-Detect
+            {selectedDomain === null && <Check className="w-3.5 h-3.5" />}
           </button>
           {DOMAINS.map((d) => {
             const Icon = d.icon;
             const isSelected = selectedDomain === d.id;
             return (
               <button key={d.id} onClick={() => setSelectedDomain(d.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${isSelected ? `${d.bg} ${d.border} ${d.text}` : "bg-surface border-line text-ink-2 hover:border-ink-3"}`}>
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all shrink-0 ${isSelected ? `${d.bg} ${d.border} ${d.text} shadow-md` : "bg-surface border-line text-ink-2 hover:border-ink-3"}`}>
                 <Icon className="w-4 h-4" /> {d.expertLabel}
+                {isSelected && <Check className="w-3.5 h-3.5" />}
               </button>
             );
           })}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <textarea value={content} onChange={(e) => setContent(e.target.value)}
-            placeholder="Describe your question in detail. For example: 'I need to review a residential lease agreement I received from my landlord. What key clauses should I look out for?'"
-            rows={6} className="w-full px-5 py-4 rounded-2xl bg-surface-2 border border-line text-ink placeholder-ink-3 focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <p className="text-xs text-ink-3">{selectedDomain ? `Querying ${selectedDomain} agent` : "AI will detect the domain automatically"}</p>
-              {content.length > 0 && <span className="text-xs text-ink-3">{content.length} chars</span>}
+        <form onSubmit={handleSubmit} className="space-y-4 animate-fade-up delay-3">
+          <div className="rounded-2xl bg-surface-2 border border-line focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/30 transition-all">
+            <textarea value={content} onChange={(e) => setContent(e.target.value)}
+              placeholder="Describe your question in detail. For example: 'I need to review a residential lease agreement I received from my landlord. What key clauses should I look out for?'"
+              rows={6} className="w-full px-5 py-4 bg-transparent text-ink placeholder-ink-3 focus:outline-none resize-none" />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <p className="text-xs text-ink-3 truncate">{selectedDomain ? `Querying the ${selectedDomain} expert agent` : "AI will detect the domain automatically"}</p>
+              {content.length > 0 && <span className="text-xs text-ink-3 shrink-0">{content.length} chars</span>}
             </div>
             <button type="submit" disabled={loading || !content.trim()}
-              className="flex items-center gap-2 bg-primary hover:bg-primary-strong disabled:opacity-50 px-6 py-3 rounded-xl font-medium transition-all">
+              className="flex items-center gap-2 bg-primary hover:bg-primary-strong disabled:opacity-50 px-6 py-3 rounded-xl font-semibold transition-all animate-shine">
               {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {loading ? "Processing..." : "Submit"}
+              {loading ? "Processing..." : "Submit Question"}
             </button>
           </div>
         </form>
 
-        {error && <div className="mt-6 bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 text-sm p-4 rounded-xl">{error}</div>}
+        {error && <div className="mt-6 bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400 text-sm p-4 rounded-xl animate-fade-up">{error}</div>}
 
         {showUpgrade && (
-          <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 p-6 space-y-3">
-            <h2 className="text-lg font-semibold text-primary">You&apos;ve used your 3 free questions</h2>
+          <div className="mt-6 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/5 p-6 space-y-3 animate-fade-up">
+            <h2 className="text-lg font-semibold text-primary flex items-center gap-2"><Sparkles className="w-5 h-5" /> You&apos;ve used your 3 free questions</h2>
             <p className="text-sm text-ink-2">Your question is still on this page. Upgrade to Pro to send it and keep asking.</p>
-            <a href="/pricing" className="inline-flex items-center gap-2 bg-primary hover:bg-primary-strong px-5 py-2.5 rounded-xl text-sm font-medium">
-              Upgrade to send this
-            </a>
+            <Link href="/pricing" className="inline-flex items-center gap-2 bg-primary hover:bg-primary-strong px-5 py-2.5 rounded-xl text-sm font-medium transition-all animate-shine">
+              Upgrade to send this <ChevronRight className="w-4 h-4" />
+            </Link>
           </div>
         )}
 
         {result && (
-          <div className="mt-8 space-y-4">
+          <div className="mt-8 space-y-4 animate-fade-up">
             <div className="flex items-center gap-3 text-sm text-ink-2 flex-wrap">
               <DomainBadge domain={result.domain} />
-              {result.complexity_score && <span>Complexity: {(result.complexity_score * 100).toFixed(0)}%</span>}
-              {result.is_escalated && <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1"><TriangleAlert className="w-4 h-4" /> Escalated: {result.escalation_reason}</span>}
+              {result.complexity_score && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                  Complexity: {(result.complexity_score * 100).toFixed(0)}%
+                </span>
+              )}
+              {result.is_escalated && <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25"><TriangleAlert className="w-3.5 h-3.5" /> Escalated</span>}
             </div>
-            <div className="bg-surface border border-line rounded-2xl p-6">
+            <div className="bg-surface border border-line rounded-2xl p-6 gradient-border">
               <div className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{result.response}</div>
             </div>
-            <a href={`/query/${result.query_id}`} className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-strong">
-              View full conversation →
-            </a>
+            <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+              <Link href={`/query/${result.query_id}`} className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary-strong font-medium group">
+                Open conversation workspace <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <button onClick={() => { setContent(""); setResult(null); }} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-line text-sm font-medium transition-all">
+                Ask another question
+              </button>
+            </div>
           </div>
         )}
       </main>
