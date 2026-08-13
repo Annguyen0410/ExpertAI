@@ -66,18 +66,18 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen relative flex items-center justify-center px-4 py-10 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-legal/10 pointer-events-none" />
-      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-legal/10 blur-3xl pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none animate-blob" />
+      <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-legal/10 blur-3xl pointer-events-none animate-blob" style={{ animationDelay: "-9s" }} />
       <div className="absolute top-4 right-4"><ThemeToggle /></div>
       <div className="w-full max-w-sm relative">
-        <div className="text-center mb-8">
-          <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-legal shadow-lg shadow-primary/25 mb-3">
+        <div className="text-center mb-8 animate-fade-up">
+          <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-legal shadow-lg shadow-primary/25 mb-3 animate-float">
             <Bot className="w-6 h-6 text-white" />
           </span>
           <h1 className="font-display text-2xl font-semibold">Create your account</h1>
           <p className="text-ink-2 text-sm mt-1">Start with a free tier, no credit card needed</p>
         </div>
-        <div className="bg-surface border border-line rounded-2xl p-8 shadow-xl shadow-ink/5">
+        <div className="bg-surface border border-line rounded-2xl p-8 shadow-xl shadow-ink/5 animate-fade-up delay-1">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">

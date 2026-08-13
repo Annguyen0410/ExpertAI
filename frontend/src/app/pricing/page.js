@@ -99,7 +99,7 @@ export default function Pricing() {
               const active = plan.tier && user?.subscription_tier === plan.tier && user?.subscription_active;
               const disabled = !plan.tier || checkoutLoading || (Boolean(user) && billingAvailable === false) || active;
               return (
-                <section key={plan.name} className={`rounded-3xl p-7 border bg-surface ${plan.featured ? "border-primary/40 shadow-lg shadow-primary/10" : "border-line"}`}>
+                <section key={plan.name} className={`rounded-3xl p-7 border bg-surface ${plan.featured ? "border-primary/40 shadow-lg shadow-primary/10 gradient-border" : "border-line card-lift"}`}>
                   {plan.featured && <span className="inline-flex mb-4 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">Most selected</span>}
                   <h2 className="text-xl font-semibold">{plan.name}</h2>
                   <p className="mt-1 text-sm text-ink-2 min-h-10">{plan.desc}</p>

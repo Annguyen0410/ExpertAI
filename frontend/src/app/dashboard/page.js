@@ -224,7 +224,7 @@ export default function Dashboard() {
               const meta = domainMeta(q.domain);
               const StatusIcon = statusIcons[q.status] || Clock;
               return (
-                <Link key={q.id} href={`/query/${q.id}`} className="flex items-center gap-4 p-4 rounded-xl bg-surface border border-line hover:border-ink-3 transition-all group">
+                <Link key={q.id} href={`/query/${q.id}`} className="flex items-center gap-4 p-4 rounded-xl bg-surface border border-line hover:border-ink-3 transition-all group hover:-translate-y-0.5 hover:shadow-lg hover:shadow-ink/5">
                   <div className={`w-10 h-10 rounded-xl ${meta?.bg || "bg-surface-2"} ${meta?.border || "border-line"} border flex items-center justify-center shrink-0`}>
                     {meta ? <meta.icon className={`w-5 h-5 ${meta.text}`} /> : <Bot className="w-5 h-5 text-ink-2" />}
                   </div>

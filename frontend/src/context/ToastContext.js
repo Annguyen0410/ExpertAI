@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useCallback } from "react";
+import { CheckCircle2, XCircle, Info, X } from "lucide-react";
 
 const ToastContext = createContext();
 
@@ -27,17 +28,17 @@ export function ToastProvider({ children }) {
     success: {
       box: "border-emerald-500/40",
       icon: "text-emerald-600 dark:text-emerald-400",
-      symbol: "✓",
+      Icon: CheckCircle2,
     },
     error: {
       box: "border-red-500/40",
       icon: "text-red-600 dark:text-red-400",
-      symbol: "✗",
+      Icon: XCircle,
     },
     info: {
       box: "border-primary/40",
       icon: "text-primary",
-      symbol: "ℹ",
+      Icon: Info,
     },
   };
 
@@ -53,9 +54,9 @@ export function ToastProvider({ children }) {
               role="status"
               className={`flex items-start gap-3 px-5 py-3 rounded-xl shadow-2xl border text-sm font-medium animate-slide-up bg-surface text-ink-2 ${s.box}`}
             >
-              <span className={`mt-0.5 ${s.icon}`}>{s.symbol}</span>
+              <span className={`mt-0.5 ${s.icon}`}><s.Icon className="w-5 h-5" /></span>
               <p className="flex-1">{toast.message}</p>
-              <button onClick={() => removeToast(toast.id)} className="text-ink-3 hover:text-ink transition-colors">×</button>
+              <button onClick={() => removeToast(toast.id)} aria-label="Dismiss notification" className="text-ink-3 hover:text-ink transition-colors"><X className="w-4 h-4" /></button>
             </div>
           );
         })}

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Bot, Activity, TrendingUp, DollarSign, Users, AlertTriangle,
   CheckCircle, Clock, BarChart3, FileText, Globe, Cpu,
-  ArrowUpRight, ArrowDownRight, RefreshCw, LogOut
+  ArrowUpRight, ArrowDownRight, RefreshCw, LogOut, Star
 } from "lucide-react";
 import { authorizedFetch } from "../../lib/api";
 import ThemeToggle from "../../components/ThemeToggle";
@@ -192,7 +192,7 @@ export default function OperationsDashboard() {
                 <div key={t.id} className="bg-surface-2/60 rounded-xl p-4 border border-line">
                   <div className="flex items-center gap-1 mb-2">
                     {[1,2,3,4,5].map((star) => (
-                      <span key={star} className={`text-xs ${star <= t.rating ? "text-amber-500" : "text-ink-3"}`}>★</span>
+                      <Star key={star} className={`w-3.5 h-3.5 ${star <= t.rating ? "text-amber-500 fill-current" : "text-ink-3"}`} />
                     ))}
                   </div>
                   <p className="text-sm text-ink mb-2">&ldquo;{(t.testimonial_text || "").substring(0, 150)}&rdquo;</p>

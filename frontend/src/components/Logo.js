@@ -13,7 +13,7 @@ export default function Logo({ href = "/", size = "md", className = "" }) {
   return (
     <Link href={href} className={`inline-flex items-center gap-2 group ${className}`}>
       <span
-        className={`${s.box} bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-lg shadow-primary/25 transition-transform group-hover:scale-105`}
+        className={`${s.box} bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-lg shadow-primary/25 transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6`}
       >
         <Bot className={`${s.icon} text-white`} />
       </span>
