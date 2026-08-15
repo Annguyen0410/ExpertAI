@@ -1,0 +1,11 @@
+Name,Email,Phone,Plan,Signup Date,Testimonial Provided,Permission Granted,Notes
+[Customer 1 Name],[customer1@email.com],[+1-555-XXXX],Individual,[2026-07-XX],Yes,Yes,[How they found us]
+[Customer 2 Name],[customer2@email.com],[+1-555-XXXX],Professional,[2026-07-XX],Yes,Yes,[How they found us]
+[Customer 3 Name],[customer3@email.com],[+1-555-XXXX],Individual,[2026-08-XX],Yes,Yes,[How they found us]
+
+# INSTRUCTIONS:
+# 1. Replace bracketed values with REAL customer data
+# 2. Obtain explicit written permission before submitting
+# 3. Save testimonials as separate files in customers/testimonials/
+# 4. Minimum 2-3 customers required for competitive submission
+# 5. At least one should be on Professional ($99/mo) plan
