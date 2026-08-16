@@ -1,0 +1,94 @@
+[
+  {
+    "id": "evt_1U38K4EdibxyVlZXzD9F23yw",
+    "object": "event",
+    "api_version": "2026-07-29.dahlia",
+    "created": 1786426439,
+    "livemode": true,
+    "pending_webhooks": 1,
+    "type": "customer.subscription.updated",
+    "request": {
+      "id": null,
+      "idempotency_key": "3fa0d822-b2b7-4add-af59-85e9ec89f416"
+    },
+    "data": {
+      "object": {
+        "id": "sub_1U36ujEdibxyVlZX2U2gpciu",
+        "object": "subscription",
+        "application": null,
+        "cancel_at": 1789099423,
+        "cancel_at_period_end": false,
+        "canceled_at": 1786426438,
+        "cancellation_details": {
+          "comment": null,
+          "feedback": "unused",
+          "reason": "cancellation_requested"
+        },
+        "collection_method": "charge_automatically",
+        "created": 1786421023,
+        "currency": "usd",
+        "customer": "cus_V3DLCeJvkdFNlM",
+        "default_payment_method": "pm_1U36ugEdibxyVlZXZpWT7Efk",
+        "items": {
+          "object": "list",
+          "data": [
+            {
+              "id": "si_V3DLsiKHCBi2P7",
+              "object": "subscription_item",
+              "created": 1786421023,
+              "current_period_end": 1789099423,
+              "current_period_start": 1786421023,
+              "plan": {
+                "id": "price_1U2ew3EdibxyVlZXweUC0MeL",
+                "object": "plan",
+                "active": true,
+                "amount": 1900,
+                "amount_decimal": "1900",
+                "billing_scheme": "per_unit",
+                "created": 1786313475,
+                "currency": "usd",
+                "interval": "month",
+                "interval_count": 1,
+                "livemode": true,
+                "product": "prod_V2kQ6gDXAEtz2r",
+                "usage_type": "licensed"
+              },
+              "price": {
+                "id": "price_1U2ew3EdibxyVlZXweUC0MeL",
+                "object": "price",
+                "active": true,
+                "billing_scheme": "per_unit",
+                "created": 1786313475,
+                "currency": "usd",
+                "livemode": true,
+                "product": "prod_V2kQ6gDXAEtz2r",
+                "recurring": {
+                  "interval": "month",
+                  "interval_count": 1,
+                  "usage_type": "licensed"
+                },
+                "type": "recurring",
+                "unit_amount": 1900
+              },
+              "quantity": 1,
+              "subscription": "sub_1U36ujEdibxyVlZX2U2gpciu",
+              "tax_rates": []
+            }
+          ],
+          "has_more": false,
+          "total_count": 1,
+          "url": "/v1/subscription_items?subscription=sub_1U36ujEdibxyVlZX2U2gpciu"
+        },
+        "latest_invoice": "in_1U36uhEdibxyVlZXTpQpr5GR",
+        "livemode": true,
+        "start_date": 1786421023,
+        "status": "active"
+      },
+      "previous_attributes": {
+        "cancellation_details": {
+          "feedback": null
+        }
+      }
+    }
+  }
+]
