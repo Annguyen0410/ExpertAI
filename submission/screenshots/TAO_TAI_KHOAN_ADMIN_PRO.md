@@ -12,8 +12,8 @@ Mình đã thêm 2 biến env `ADMIN_EMAILS` và `PROFESSIONAL_EMAILS`. Chỉ c�
 
 **Bước 1 — Set env trên production (Render/Railway/Cloud Run → Environment Variables):**
 ```bash
-ADMIN_EMAILS=admin@yourdomain.com
-PROFESSIONAL_EMAILS=pro@yourdomain.com
+ADMIN_EMAILS=norvixadam@gmail.com
+PROFESSIONAL_EMAILS=huynhvan0502@gmail.com
 ```
 > Sau khi set, nhớ **redeploy / restart** backend.
 
@@ -178,8 +178,8 @@ Có khấu trừ home office không?"
 | Individual 1 | user1@gmail.com | Password123! | ☐ | ☐ | `/query/[id]` |
 | Individual 2 | user2@gmail.com | Password123! | ☐ | ☐ | `/pricing` → Stripe |
 | Individual 3 | user3@gmail.com | Password123! | ☐ | ☐ | `/query/[id]` (escalation) |
-| Professional | pro@yourdomain.com | Password123! | ☐ | ☐ | `/professional` |
-| Admin | admin@yourdomain.com | Password123! | ☐ | ☐ | `/operations` |
+| Professional | huynhvan0502@gmail.com | Password123! | ☐ | ☐ | `/professional` |
+| Admin | norvixadam@gmail.com | Password123! | ☐ | ☐ | `/operations` |
 
 ---
 
