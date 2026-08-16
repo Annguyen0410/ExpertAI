@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, Bot, CheckCircle2, Cpu, Download, FileText, Heart, Loader2,
-  Paperclip, Scale, Send, Star, TriangleAlert, Upload, WalletCards,
+  Paperclip, Scale, Send, Sparkles, Star, TriangleAlert, Upload, WalletCards,
 } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import ThemeToggle from "../../../components/ThemeToggle";
@@ -14,8 +14,21 @@ import { domainMeta } from "../../../lib/domains";
 
 const domainIcons = { legal: Scale, financial: WalletCards, medical: Heart };
 
+const SUGGESTIONS = [
+  "Summarize the key takeaways so far",
+  "What questions should I ask a professional about this?",
+];
+
 function formatTimestamp(value) {
   return value ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Just now";
+}
+
+function formatTime(value) {
+  return value ? new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" }).format(new Date(value)) : "now";
+}
+
+function formatDay(value) {
+  return value ? new Intl.DateTimeFormat(undefined, { weekday: "short", month: "short", day: "numeric" }).format(new Date(value)) : "";
 }
 
 export default function QueryDetail() {
@@ -177,13 +190,15 @@ export default function QueryDetail() {
   const meta = domainMeta(query.domain);
   const Icon = domainIcons[query.domain] || Bot;
   const complexity = typeof query.complexity_score === "number" ? Math.round(query.complexity_score * 100) : null;
+  const statusDot = query.status === "completed" ? "bg-emerald-500" : query.status === "escalated" ? "bg-amber-500" : "bg-primary animate-pulse-soft";
+  const statusLabel = query.status === "completed" ? "Completed" : query.status === "escalated" ? "Escalated" : query.status === "processing" ? "Processing" : "Pending";
 
   return (
     <div className="min-h-screen bg-bg text-ink">
       <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur px-4 sm:px-6 py-3">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
           <Link href="/dashboard" className="p-2 -ml-2 rounded-lg text-ink-2 hover:text-ink hover:bg-surface-2 transition-colors" aria-label="Back to dashboard"><ArrowLeft className="w-5 h-5" /></Link>
-          <div className={`w-10 h-10 rounded-xl border ${meta?.bg || "bg-surface-2"} ${meta?.border || "border-line"} flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-105`}>
+          <div className={`w-10 h-10 rounded-xl border ${meta?.bg || "bg-surface-2"} ${meta?.border || "border-line"} flex items-center justify-center shrink-0 shadow-md`}>
             {meta ? <meta.icon className={`w-5 h-5 ${meta.text}`} /> : <Icon className="w-5 h-5 text-ink-2" />}
           </div>
           <div className="min-w-0 flex-1"><h1 className="font-semibold truncate">{query.title}</h1><p className="text-xs text-ink-3 capitalize">{query.domain} · {formatTimestamp(query.created_at)}</p></div>
@@ -226,36 +241,89 @@ export default function QueryDetail() {
         </section>
       )}
 
-      <main className="max-w-6xl mx-auto grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 px-4 sm:px-6 py-6">
-        <section className="min-w-0 space-y-4">
-          {error && <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400 animate-fade-up">{error}</p>}
-          <div className="space-y-4 min-h-[360px]">
+      <main className="max-w-6xl mx-auto grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 px-4 sm:px-6 py-6 items-start">
+        <section className="min-w-0 rounded-2xl border border-line bg-surface shadow-xl shadow-ink/5 overflow-hidden flex flex-col animate-fade-up">
+          <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3 border-b border-line bg-surface-2/50">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-legal flex items-center justify-center shrink-0 shadow-md shadow-primary/25">
+                <Bot className="w-5 h-5 text-white" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold leading-tight truncate">{meta?.expertLabel || "ExpertAI"}</p>
+                <p className="text-[11px] text-ink-3 flex items-center gap-1.5"><span className={`w-1.5 h-1.5 rounded-full ${statusDot}`} />{statusLabel}</p>
+              </div>
+            </div>
+            <DomainBadge domain={query.domain} label={query.domain} iconClassName="w-3 h-3" />
+          </div>
+
+          <div className="h-[calc(100vh-300px)] min-h-[420px] overflow-y-auto p-4 sm:p-5 space-y-4 bg-bg/40">
+            {error && <p role="alert" className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+
+            {messages.length === 0 && !sending && (
+              <div className="h-full flex flex-col items-center justify-center text-center gap-4 px-6">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-legal/20 blur-xl" />
+                  <span className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-legal flex items-center justify-center shadow-lg shadow-primary/25 animate-float">
+                    <Bot className="w-7 h-7 text-white" />
+                  </span>
+                </div>
+                <div>
+                  <p className="font-semibold flex items-center justify-center gap-1.5"><Sparkles className="w-4 h-4 text-accent" /> Start the conversation</p>
+                  <p className="text-sm text-ink-2 mt-1 max-w-sm">Ask a follow-up about your {query.domain} question, or pick a starting point below.</p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {SUGGESTIONS.map((suggestion) => (
+                    <button key={suggestion} type="button" onClick={() => setInput(suggestion)}
+                      className="px-3.5 py-2 rounded-xl bg-surface-2 hover:bg-surface border border-line text-xs text-ink-2 hover:text-ink transition-all hover:-translate-y-0.5">
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {messages.map((message, index) => {
               const isUser = message.role === "user";
+              const day = message.created_at ? formatDay(message.created_at) : "";
+              const prevDay = index > 0 && messages[index - 1].created_at ? formatDay(messages[index - 1].created_at) : "";
+              const showDay = day && day !== prevDay;
               return (
-                <div key={`${message.created_at || "new"}-${index}`} className={`flex gap-3 animate-fade-up ${isUser ? "justify-end" : ""}`}>
-                  {!isUser && (
-                    <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-legal flex items-center justify-center shrink-0 shadow-md shadow-primary/25 mt-0.5">
-                      <Bot className="w-4.5 h-4.5 text-white" />
-                    </span>
+                <div key={`${message.created_at || "new"}-${index}`} className="space-y-4">
+                  {showDay && (
+                    <div className="flex items-center gap-3">
+                      <span className="flex-1 h-px bg-line" />
+                      <span className="text-[11px] text-ink-3 font-medium">{day}</span>
+                      <span className="flex-1 h-px bg-line" />
+                    </div>
                   )}
-                  <div className={`max-w-[88%] sm:max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                    isUser
-                      ? "bg-gradient-to-br from-primary to-primary-strong text-white rounded-br-md shadow-md shadow-primary/25"
-                      : "bg-surface border border-line text-ink rounded-tl-md shadow-sm"
-                  }`}>
-                    {!isUser && <p className="text-[11px] font-semibold text-primary mb-1.5 uppercase tracking-wide">{meta?.expertLabel || "ExpertAI"}</p>}
-                    {message.content}
+                  <div className={`flex gap-3 animate-fade-up ${isUser ? "justify-end" : ""}`}>
+                    {!isUser && (
+                      <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-legal flex items-center justify-center shrink-0 shadow-md shadow-primary/25 mt-0.5">
+                        <Bot className="w-4 h-4 text-white" />
+                      </span>
+                    )}
+                    <div className={`max-w-[85%] sm:max-w-[75%] ${isUser ? "text-right" : ""}`}>
+                      <div className={`inline-block text-left rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                        isUser
+                          ? "bg-gradient-to-br from-primary to-primary-strong text-white rounded-br-md shadow-md shadow-primary/25"
+                          : "bg-surface-2 border border-line text-ink rounded-tl-md"
+                      }`}>
+                        {!isUser && <p className="text-[11px] font-semibold text-primary mb-1 uppercase tracking-wide">{meta?.expertLabel || "ExpertAI"}</p>}
+                        {message.content}
+                      </div>
+                      <p className={`text-[10px] text-ink-3 mt-1 ${isUser ? "" : "text-left"}`}>{formatTime(message.created_at)}</p>
+                    </div>
                   </div>
                 </div>
               );
             })}
+
             {sending && (
               <div className="flex gap-3 animate-fade-up">
                 <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-legal flex items-center justify-center shrink-0 shadow-md shadow-primary/25">
                   <Bot className="w-4 h-4 text-white" />
                 </span>
-                <div className="rounded-2xl rounded-tl-md border border-line bg-surface px-4 py-3 flex items-center gap-2 text-sm text-ink-2">
+                <div className="rounded-2xl rounded-tl-md border border-line bg-surface-2 px-4 py-3 flex items-center gap-2 text-sm text-ink-2">
                   <span className="inline-flex gap-1"><span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" /></span>
                   Agent is preparing a response…
                 </div>
@@ -264,8 +332,30 @@ export default function QueryDetail() {
             <div ref={chatEnd} />
           </div>
 
+          <form onSubmit={sendMessage} className="border-t border-line p-3 bg-surface">
+            <div className="rounded-xl border border-line bg-surface-2/60 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/25 transition-all">
+              <div className="flex gap-2 items-end px-3 py-2">
+                <label htmlFor="follow-up" className="sr-only">Ask a follow-up question</label>
+                <input id="follow-up" value={input} onChange={(event) => setInput(event.target.value)} maxLength={6000}
+                  placeholder="Ask a follow-up question…"
+                  className="min-w-0 flex-1 bg-transparent px-1 py-1.5 text-sm outline-none placeholder:text-ink-3" />
+                <button type="submit" disabled={!input.trim() || sending}
+                  className="group p-2.5 rounded-lg bg-primary hover:bg-primary-strong disabled:bg-surface-2 disabled:text-ink-3 transition-all hover:scale-105 shrink-0"
+                  aria-label="Send message">
+                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between px-3 pb-1.5">
+                <p className="text-[11px] text-ink-3">Follow-ups continue the same workspace and audit trail.</p>
+                {input.length > 0 && <span className="text-[11px] text-ink-3">{input.length}/6000</span>}
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <aside className="space-y-4 lg:sticky lg:top-20">
           {query.status === "completed" && (
-            <div className="rounded-2xl border border-line bg-surface px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 animate-fade-up">
+            <section className="rounded-2xl border border-line bg-surface px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
               {feedbackSent ? (
                 <p className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Thank you for your feedback!</p>
               ) : (
@@ -281,29 +371,9 @@ export default function QueryDetail() {
                   </div>
                 </>
               )}
-            </div>
+            </section>
           )}
 
-          <form onSubmit={sendMessage} className="sticky bottom-4 rounded-2xl border border-line bg-surface/95 backdrop-blur p-3 shadow-lg shadow-ink/5 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/25 transition-all">
-            <div className="flex gap-2 items-end">
-              <label htmlFor="follow-up" className="sr-only">Ask a follow-up question</label>
-              <input id="follow-up" value={input} onChange={(event) => setInput(event.target.value)} maxLength={6000}
-                placeholder="Ask a follow-up question…"
-                className="min-w-0 flex-1 bg-transparent px-2 py-1.5 text-sm outline-none placeholder:text-ink-3" />
-              <button type="submit" disabled={!input.trim() || sending}
-                className="group p-2.5 rounded-xl bg-primary hover:bg-primary-strong disabled:bg-surface-2 disabled:text-ink-3 transition-all hover:scale-105"
-                aria-label="Send message">
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />}
-              </button>
-            </div>
-            <div className="flex items-center justify-between px-2 pt-1.5">
-              <p className="text-[11px] text-ink-3">Follow-ups continue the same workspace and audit trail.</p>
-              {input.length > 0 && <span className="text-[11px] text-ink-3">{input.length}/6000</span>}
-            </div>
-          </form>
-        </section>
-
-        <aside className="space-y-4">
           <section className="rounded-2xl border border-line bg-surface p-4 overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r from-primary to-legal -mx-4 -mt-4 mb-4" />
             <div className="flex items-start gap-3">
@@ -328,6 +398,7 @@ export default function QueryDetail() {
             )}
             <div className="mt-4"><DomainBadge domain={query.domain} label={query.domain} iconClassName="w-3.5 h-3.5" /></div>
           </section>
+
           <section className="rounded-2xl border border-line bg-surface p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -364,6 +435,7 @@ export default function QueryDetail() {
               )) : <p className="text-xs text-ink-3 py-3">Attach a supporting document to keep it connected to this query.</p>}
             </div>
           </section>
+
           <section className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-4 text-xs text-ink-2">
             <div className="flex gap-2"><span className="p-1 rounded-lg bg-amber-500/15 text-amber-500 shrink-0 h-fit"><TriangleAlert className="w-3.5 h-3.5" /></span><p>AI guidance is informational. For urgent, complex, or high-stakes situations, seek qualified professional help.</p></div>
           </section>

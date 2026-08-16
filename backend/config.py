@@ -210,6 +210,15 @@ if IS_PRODUCTION and not RESEND_API_KEY and not SMTP_HOST:
 # time-bounded professional onboarding code outside source control.
 PROFESSIONAL_INVITE_CODE = os.getenv("PROFESSIONAL_INVITE_CODE", "")
 
+# Optional bootstrap: emails listed here are automatically promoted to the
+# given role on signup and sign-in. Comma-separated. Intended to let a
+# deployment owner create admin / professional accounts without touching the DB.
+def _email_set(value: str) -> set[str]:
+    return {e.strip().lower() for e in value.split(",") if e.strip()}
+
+ADMIN_EMAILS = _email_set(os.getenv("ADMIN_EMAILS", ""))
+PROFESSIONAL_EMAILS = _email_set(os.getenv("PROFESSIONAL_EMAILS", ""))
+
 B2C_PRICE_ID = os.getenv("B2C_PRICE_ID", "")
 B2B_PRICE_ID = os.getenv("B2B_PRICE_ID", "")
 B2C_PRICE = _int_env("B2C_PRICE", 1900, minimum=0, maximum=10_000_000)

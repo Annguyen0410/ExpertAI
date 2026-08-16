@@ -31,9 +31,11 @@ from auth import (
     verify_password,
 )
 from config import (
+    ADMIN_EMAILS,
     ALLOW_LEGACY_REFRESH_BODY,
     APP_BASE_URL,
     CSRF_COOKIE_NAME,
+    PROFESSIONAL_EMAILS,
     PROFESSIONAL_INVITE_CODE,
     REFRESH_COOKIE_NAME,
     REFRESH_COOKIE_SAMESITE,
@@ -232,6 +234,20 @@ def _clear_session_cookies(response: Response) -> None:
     response.delete_cookie(key=CSRF_COOKIE_NAME, path="/auth")
 
 
+def _apply_bootstrap_role(user: User, db: Session) -> None:
+    """Promote accounts whose email is listed in ADMIN_EMAILS / PROFESSIONAL_EMAILS."""
+    email = (user.email or "").lower()
+    if email in ADMIN_EMAILS and user.role != UserRole.admin:
+        user.role = UserRole.admin
+        db.add(user)
+    elif (
+        email in PROFESSIONAL_EMAILS
+        and user.role not in (UserRole.professional, UserRole.admin)
+    ):
+        user.role = UserRole.professional
+        db.add(user)
+
+
 def _issue_session(user: User, response: Response, db: Session) -> AuthResponse:
     access_token = create_access_token({"sub": user.id, "email": user.email, "ver": user.token_version})
     refresh_token, _ = issue_refresh_token(user, db)
@@ -273,6 +289,7 @@ def signup(req: SignUpRequest, request: Request, response: Response, db: Session
     )
     db.add(user)
     db.flush()
+    _apply_bootstrap_role(user, db)
     payload = _issue_session(user, response, db)
     log_security_event(db, "signup", user.id, request)
     db.commit()
@@ -296,6 +313,7 @@ def signin(req: SignInRequest, request: Request, response: Response, db: Session
         )
 
     reset_login_attempts(user)
+    _apply_bootstrap_role(user, db)
     payload = _issue_session(user, response, db)
     log_security_event(db, "signin", user.id, request)
     db.commit()
