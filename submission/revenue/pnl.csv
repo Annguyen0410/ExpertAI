@@ -1,12 +1,12 @@
 Category,Amount (USD),Notes
-Revenue - Individual Subscriptions,0,Stripe B2C price $19/mo — UPDATE WITH ACTUAL
-Revenue - Professional Subscriptions,0,Stripe B2B price $99/mo — UPDATE WITH ACTUAL
-Total Revenue,0,
-COGS - Gemini API,0,From api_usage/gemini_usage.json — UPDATE WITH ACTUAL
-COGS - Stripe Fees (2.9% + 30¢),0,Calculated from revenue — UPDATE WITH ACTUAL
-Hosting (Render/Cloud Run),0,Monthly infrastructure — UPDATE WITH ACTUAL
-Domain/SSL,0,Annual prorated — UPDATE WITH ACTUAL
-Marketing & Customer Acquisition,0,MUST disclose even if $0 — UPDATE WITH ACTUAL
+Revenue - Individual Subscriptions,19.00,Stripe B2C price $19/mo — 1 successful payment (thienkim2855@gmail.com)
+Revenue - Professional Subscriptions,0,Stripe B2B price $99/mo — none yet
+Total Revenue,19.00,
+COGS - Gemini API,0,From api_usage/gemini_usage.json — PENDING export, update when available
+COGS - Stripe Fees,0.79,Stripe fee on $19 (2.9% + $0.30); net volume was $18.21
+Hosting (Render/Cloud Run),0,Free tier during hackathon — update if billed
+Domain/SSL,0,No cost during hackathon
+Marketing & Customer Acquisition,0,Organic growth only — disclosed in expense_disclosure.md
 Other Expenses,0,
-Total Expenses,0,
-Net Profit/Loss,0,
+Total Expenses,0.79,
+Net Profit/Loss,18.21,
