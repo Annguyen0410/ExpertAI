@@ -22,11 +22,11 @@ Every agent action is written to an **execution log** — agent name, action, de
 
 ## How the money works
 
-Pricing is live: **$19/month** for individuals (B2C) and **$99/month** for businesses (B2B), both via Stripe subscriptions with real checkout. Revenue is real and recurring.
+Pricing is live: **$19/month** for individuals (B2C) and **$99/month** for businesses (B2B), both via Stripe subscriptions with real checkout. Revenue is real.
 
 ## Traction
 
-ExpertAI is **live in production** with **real paying customers** and **real Stripe revenue**. We onboarded our first paying customer by sharing the product directly within our personal network — organic growth with **$0 spent on paid marketing**. [Update: N paying customers, ~$X/month MRR, N% AI resolution rate.]
+ExpertAI is **live in production** with a **real paying customer** and **real Stripe revenue**. We onboarded our first paying customer by sharing the product directly within our personal network — organic growth with **$0 spent on paid marketing**. To date: **1 paying customer and $19 in realized revenue**, with **18 of 21 agent executions completing successfully (~86%)**.
 
 ## Safety & responsibility
 
@@ -51,7 +51,7 @@ Gemini's capability and its cost-efficient flash-class models let us run a compl
 
 ## Team
 
-[Founder name] — [role(s)] — solo builder of ExpertAI.
+Huynh Thien An Nguyen — Product / Engineering / Design — solo builder of ExpertAI.
 
 ## The future
 

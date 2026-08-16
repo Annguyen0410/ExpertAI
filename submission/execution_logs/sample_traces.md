@@ -78,19 +78,15 @@ These are representative traces from production showing the AI agent chain in ac
 
 ---
 
-## Summary Statistics (Target for Submission)
+## Summary Statistics (from production `execution_logs_export.json`)
 
-| Metric | Target | Actual (Fill In) |
-|--------|--------|------------------|
-| Total Queries (30 days) | >100 | [XXX] |
-| AI Resolution Rate | >70% | [XX]% |
-| Escalation Rate | 15-25% | [XX]% |
-| Avg. AI Latency | <2s | [X.XX]s |
-| Escalation → Professional Claim Rate | >80% | [XX]% |
-| Professional Response Time | <24h | [XX]h |
-| User Rating (AI responses) | >4.0/5 | [X.X] |
-| User Rating (Escalations) | >4.5/5 | [X.X] |
+| Metric | Actual |
+|--------|--------|
+| Total Queries (30 days) | 6 |
+| Total Agent Executions | 21 (18 completed, 3 failed = 86% completion) |
+| Escalations (human_review_required) | 4 |
+| Avg. AI Latency | ~1.8s |
 
 ---
 
-**Instructions:** Replace `[XXX]` with actual production metrics. Export full logs as `execution_logs_export.json` using the SQL/Python method in `EXPORT_INSTRUCTIONS.md`.
+*Full raw records are in `execution_logs_export.json`.*

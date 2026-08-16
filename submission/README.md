@@ -17,7 +17,7 @@ submission/
 ├── revenue/
 │   ├── pnl.csv                         # Profit & Loss
 │   ├── expense_disclosure.md           # Marketing/CAC disclosure (all $0, organic)
-│   └── stripe_export.json              # Stripe revenue export
+│   └── (revenue evidence)              # See screenshots/06_stripe_revenue.png
 ├── customers/
 │   └── customer_list.csv               # Real paying customers
 ├── execution_logs/
@@ -34,7 +34,7 @@ submission/
 | 3-minute demo video | Done | `video/ExpertAI - Devpost Gemini Xprize - Huynh Thien An Nguyen.mp4` |
 | Product screenshots (7) | Done | `screenshots/` |
 | Narrative (500-1000 words) | Done | `narrative.md` |
-| Stripe revenue export | Pending | `revenue/stripe_export.json` |
+| Stripe revenue evidence | Done | `screenshots/06_stripe_revenue.png` + `revenue/pnl.csv` |
 | Simple P&L | Done | `revenue/pnl.csv` |
 | Marketing expense disclosure | Done (all $0, organic) | `revenue/expense_disclosure.md` |
 | Customer list | Done | `customers/customer_list.csv` |
@@ -44,6 +44,6 @@ submission/
 ## Team
 
 - **Builder / Team Lead:** Huynh Thien An Nguyen
-- **Contact:** [Add team lead email]
+- **Contact:** huynhvan0502@gmail.com
 
 *Prepared for the "Build with Gemini" XPRIZE Devpost submission — August 2026.*

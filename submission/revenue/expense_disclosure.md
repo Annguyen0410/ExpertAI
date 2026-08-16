@@ -31,8 +31,8 @@ If you have paying customers:
 
 ```
 Total Marketing & CAC Spend: $0
-New Paying Customers Acquired: [N]
-Blended CAC = $0 / [N] = $0 per customer
+New Paying Customers Acquired: 1
+Blended CAC = $0 / 1 = $0 per customer
 ```
 
 ---
