@@ -1,127 +1,124 @@
-"""Export hackathon evidence straight from the app database (no DB console needed).
+"""Export agent execution logs and an estimated Gemini usage report from the
+production database as JSON evidence for the hackathon submission.
 
-Run from the backend/ directory (or with the backend venv):
+Usage (run from the backend/ directory), passing the database URL:
 
-    python scripts/export_evidence.py
+    python scripts/export_evidence.py "postgresql://user:pass@host:5432/db"
+    # or use the DATABASE_URL env var:
+    DATABASE_URL="postgresql://..." python scripts/export_evidence.py
 
-This uses the SAME DATABASE_URL as the running app (backend/.env or platform env),
-so it works for local SQLite and production Postgres alike. It writes:
+Writes:
+    submission/execution_logs/execution_logs_export.json
+    submission/api_usage/gemini_usage.json
 
-    <repo>/submission/execution_logs/execution_logs_export.json
-    <repo>/submission/api_usage/gemini_usage.json
-
-The Gemini usage figures are ESTIMATES derived from the number of agent runs in
-the execution logs, using gemini-1.5-flash public pricing. They are meant to be
-a self-consistent, honest approximation, not an official billing export.
+The database password is only used in-memory for this run; it is never written
+to any file.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import sys
-from datetime import datetime, timedelta, timezone
+from collections import defaultdict
+from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, "")
 
-# Est. tokens per agent run (input/output) — conservative placeholder used to
-# estimate cost. Adjust to your real observed usage if you have better data.
-AGENT_TOKENS = {
-    "TriageAgent": (900, 150),
-    "LegalAgent": (1500, 450),
-    "FinancialAgent": (1500, 450),
-    "MedicalAgent": (1400, 400),
-    "FollowUpAgent": (700, 200),
-    "EscalationAgent": (800, 200),
-    "SafetyBoundary": (300, 50),
-    "BusinessIntelligenceAgent": (1200, 300),
-    "HumanProfessional": (0, 0),
-}
-# gemini-1.5-flash public pricing (USD per 1M tokens).
-PRICE_INPUT_PER_M = 0.075
-PRICE_OUTPUT_PER_M = 0.30
+from sqlalchemy import create_engine, text  # noqa: E402
+
+# Rough per-call cost assumptions for the Gemini flash-class models. Used only to
+# estimate cost for the report; actual numbers come from AI Studio / Cloud Billing.
+_ASSUMED_COST_PER_CALL_USD = 0.002
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parent.parent.parent
+def _pick_db_url() -> str:
+    if len(sys.argv) > 1 and sys.argv[1].startswith("postgres"):
+        return sys.argv[1]
+    url = os.getenv("DATABASE_URL", "")
+    if not url:
+        print(
+            "No database URL provided.\n"
+            'Usage: python scripts/export_evidence.py "postgresql://user:pass@host/db"'
+        )
+        sys.exit(2)
+    return url
 
 
-def _run(db) -> list:
-    from models import AgentExecutionLog  # noqa: PLC0415
+def main() -> None:
+    url = _pick_db_url()
+    print("Connecting to the database...")
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
-    rows = (
-        db.query(AgentExecutionLog)
-        .filter(AgentExecutionLog.created_at >= cutoff)
-        .order_by(AgentExecutionLog.created_at.desc())
-        .all()
-    )
-    return [
+    engine = create_engine(url, pool_pre_ping=True)
+    cutoff = datetime.utcnow() - timedelta(days=30)
+
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                """
+                SELECT id, query_id, agent_name, action, input_data, output_data,
+                       decision, confidence_score, execution_time_ms, status, created_at
+                FROM agent_execution_logs
+                WHERE created_at >= :cutoff
+                ORDER BY created_at DESC
+                """
+            ),
+            {"cutoff": cutoff},
+        ).mappings().all()
+
+    logs = [
         {
-            "id": r.id,
-            "query_id": r.query_id,
-            "agent_name": r.agent_name,
-            "action": r.action,
-            "input_data": r.input_data,
-            "output_data": r.output_data,
-            "decision": r.decision,
-            "confidence_score": r.confidence_score,
-            "execution_time_ms": r.execution_time_ms,
-            "status": r.status,
-            "created_at": r.created_at.isoformat() if r.created_at else None,
+            "id": r["id"],
+            "query_id": r["query_id"],
+            "agent_name": r["agent_name"],
+            "action": r["action"],
+            "input_data": r["input_data"],
+            "output_data": r["output_data"],
+            "decision": r["decision"],
+            "confidence_score": r["confidence_score"],
+            "execution_time_ms": r["execution_time_ms"],
+            "status": r["status"],
+            "created_at": r["created_at"].isoformat() if r["created_at"] else None,
         }
         for r in rows
     ]
 
+    exec_path = _REPO_ROOT / "submission" / "execution_logs" / "execution_logs_export.json"
+    exec_path.parent.mkdir(parents=True, exist_ok=True)
+    exec_path.write_text(json.dumps(logs, indent=2), encoding="utf-8")
+    print(f"Wrote {len(logs)} execution logs -> {exec_path.relative_to(_REPO_ROOT)}")
 
-def _usage(logs: list) -> dict:
-    per_agent: dict[str, dict] = {}
-    total_input = 0
-    total_output = 0
-    for row in logs:
-        name = row["agent_name"]
-        inp, out = AGENT_TOKENS.get(name, (1000, 300))
-        total_input += inp
-        total_output += out
-        agg = per_agent.setdefault(name, {"requests": 0, "input_tokens": 0, "output_tokens": 0})
-        agg["requests"] += 1
-        agg["input_tokens"] += inp
-        agg["output_tokens"] += out
+    # Gemini usage estimate, aggregated per agent.
+    by_agent: dict[str, int] = defaultdict(int)
+    status_mix: dict[str, int] = defaultdict(int)
+    for r in logs:
+        by_agent[r["agent_name"]] += 1
+        status_mix[r["status"]] += 1
 
-    cost = total_input / 1_000_000 * PRICE_INPUT_PER_M + total_output / 1_000_000 * PRICE_OUTPUT_PER_M
-    return {
-        "note": "Estimated from agent_execution_logs using gemini-1.5-flash public pricing; not an official billing export.",
-        "model": "gemini-1.5-flash",
-        "period": f"{datetime.now(timezone.utc) - timedelta(days=30):%Y-%m-%d} to {datetime.now(timezone.utc):%Y-%m-%d}",
-        "total_requests": len(logs),
-        "total_input_tokens": total_input,
-        "total_output_tokens": total_output,
-        "estimated_cost_usd": round(cost, 4),
-        "by_agent": per_agent,
+    total_calls = len(logs)
+    usage = {
+        "period": "last 30 days",
+        "model": "gemini-family (flash-class)",
+        "total_requests": total_calls,
+        "estimated_cost_usd": round(total_calls * _ASSUMED_COST_PER_CALL_USD, 2),
+        "by_agent": {
+            name: {"requests": count}
+            for name, count in sorted(by_agent.items(), key=lambda kv: kv[1], reverse=True)
+        },
+        "status_distribution": dict(status_mix),
+        "note": "Estimated from agent_execution_logs; reference billing for exact cost.",
     }
 
+    usage_path = _REPO_ROOT / "submission" / "api_usage" / "gemini_usage.json"
+    usage_path.write_text(json.dumps(usage, indent=2), encoding="utf-8")
+    print(f"Wrote Gemini usage estimate -> {usage_path.relative_to(_REPO_ROOT)}")
 
-def main() -> None:
-    from database import SessionLocal  # noqa: PLC0415
-
-    db = SessionLocal()
-    try:
-        logs = _run(db)
-    finally:
-        db.close()
-
-    root = _repo_root()
-    exec_out = root / "submission" / "execution_logs" / "execution_logs_export.json"
-    usage_out = root / "submission" / "api_usage" / "gemini_usage.json"
-
-    exec_out.parent.mkdir(parents=True, exist_ok=True)
-    usage_out.parent.mkdir(parents=True, exist_ok=True)
-
-    exec_out.write_text(json.dumps(logs, indent=2), encoding="utf-8")
-    usage_out.write_text(json.dumps(_usage(logs), indent=2), encoding="utf-8")
-
-    print(f"Exported {len(logs)} execution logs -> {exec_out}")
-    print(f"Gemini usage (estimated)          -> {usage_out}")
+    print("\nSummary:")
+    print(f"  Total agent executions (30d): {total_calls}")
+    print(f"  Estimated Gemini cost:       ${usage['estimated_cost_usd']:.2f}")
 
 
 if __name__ == "__main__":

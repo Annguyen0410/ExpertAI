@@ -1,0 +1,28 @@
+{
+  "period": "last 30 days",
+  "model": "gemini-family (flash-class)",
+  "total_requests": 21,
+  "estimated_cost_usd": 0.04,
+  "by_agent": {
+    "TriageAgent": {
+      "requests": 8
+    },
+    "LegalAgent": {
+      "requests": 7
+    },
+    "FollowUpAgent": {
+      "requests": 2
+    },
+    "FinancialAgent": {
+      "requests": 2
+    },
+    "EscalationAgent": {
+      "requests": 2
+    }
+  },
+  "status_distribution": {
+    "completed": 18,
+    "failed": 3
+  },
+  "note": "Estimated from agent_execution_logs; reference billing for exact cost."
+}

@@ -43,8 +43,8 @@ submission/
 | Simple P&L | ⬜ Pending (fill revenue) | `revenue/pnl.csv` |
 | Marketing expense disclosure | ✅ Done (all $0) | `revenue/expense_disclosure.md` |
 | Customer list + testimonials | ⬜ Pending (add data) | `customers/` |
-| Agent execution logs export | ⬜ Pending | `execution_logs/` |
-| API usage records (Gemini, Stripe) | ⬜ Pending | `api_usage/` |
+| Agent execution logs export | ✅ Done (21 logs) | `execution_logs/execution_logs_export.json` |
+| API usage records (Gemini, Stripe) | ✅ Gemini done | `api_usage/gemini_usage.json`, `api_usage/stripe_webhook_logs.json` |
 
 ## How to Generate Evidence
 
