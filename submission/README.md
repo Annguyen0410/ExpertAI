@@ -36,12 +36,13 @@ submission/
 
 | Requirement | Status | Location |
 |-------------|--------|----------|
-| 3-minute demo video | ⬜ Pending | `video/expert_ai_demo.mp4` |
-| Product screenshots (7) | ⬜ Pending | `screenshots/` |
+| 3-minute demo video | ✅ Done | `video/ExpertAI - Devpost Gemini Xprize - Huynh Thien An Nguyen.mp4` |
+| Product screenshots (7) | ✅ Done | `screenshots/` |
+| Narrative (500-1000 words) | ✅ Done | `narrative.md` |
 | Stripe revenue export | ⬜ Pending | `revenue/stripe_export.json` |
-| Simple P&L | ⬜ Pending | `revenue/pnl.csv` |
-| Marketing expense disclosure | ⬜ Pending | `revenue/expense_disclosure.md` |
-| Customer list + testimonials | ⬜ Pending | `customers/` |
+| Simple P&L | ⬜ Pending (fill revenue) | `revenue/pnl.csv` |
+| Marketing expense disclosure | ✅ Done (all $0) | `revenue/expense_disclosure.md` |
+| Customer list + testimonials | ⬜ Pending (add data) | `customers/` |
 | Agent execution logs export | ⬜ Pending | `execution_logs/` |
 | API usage records (Gemini, Stripe) | ⬜ Pending | `api_usage/` |
 
@@ -127,9 +128,10 @@ Document 3-5 example traces with annotations:
 
 ## Submission Contacts
 
-- **GitHub Repo**: Shared with `testing@devpost.com` AND `judging@hacker.fund`
+- **GitHub Repo**: `github.com/Annguyen0410/ExpertAI` — shared with `testing@devpost.com` AND `judging@hacker.fund`
 - **Production URL**: [Add your live URL]
 - **Team Contact**: [Add team lead email]
+- **Team Lead / Builder**: Huynh Thien An Nguyen
 
 ---
 
