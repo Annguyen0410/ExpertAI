@@ -32,6 +32,12 @@ security = HTTPBearer(auto_error=False)
 
 FAILED_LOGIN_LIMIT = 8
 ACCOUNT_LOCKOUT_MINUTES = 15
+# When a refresh token is rotated, in-flight requests from the same browser
+# (parallel 401 retries, a second tab) can still arrive with the old cookie
+# within milliseconds. Inside this window the reuse is treated as a benign
+# race and the token is rotated again instead of revoking the whole session.
+# Reuse after the window still means a copied token and revokes the family.
+REFRESH_REUSE_GRACE_SECONDS = 30
 
 
 def utcnow() -> datetime:
@@ -155,6 +161,24 @@ def rotate_refresh_token(raw_token: str, db: Session) -> tuple[User, str, dateti
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh session not found")
     record_expires_at = _as_utc(record.expires_at)
     if record.used_at or record.revoked_at or not record_expires_at or record_expires_at <= now:
+        # A token reused immediately after its own rotation is almost always a
+        # parallel request that raced the rotation (not a thief): rotate again
+        # and keep the session alive. Reuse outside the grace window still
+        # means a copied token — invalidate every remaining session.
+        used_at = _as_utc(record.used_at) if record.used_at else None
+        if (
+            record_expires_at
+            and record_expires_at > now
+            and used_at
+            and (now - used_at).total_seconds() <= REFRESH_REUSE_GRACE_SECONDS
+        ):
+            user = db.query(User).filter(User.id == user_id).first()
+            if user and token_version == user.token_version and not is_account_locked(user):
+                new_token, expires_at = issue_refresh_token(user, db)
+                new_payload = decode_token(new_token)
+                record.replaced_by_hash = refresh_token_hash(str(new_payload["jti"]))
+                db.commit()
+                return user, new_token, expires_at
         # Reuse may indicate a copied refresh token. Invalidate the user's
         # remaining refresh sessions to limit the impact.
         db.query(RefreshToken).filter(

@@ -5,6 +5,8 @@ import { extractApiError } from "../lib/api";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const AuthContext = createContext(null);
+// Shared across renders so parallel 401 retries collapse into one refresh call.
+let refreshInFlight = null;
 
 function readCookie(name) {
   if (typeof document === "undefined") return "";
@@ -33,7 +35,9 @@ async function readResponse(response) {
     : await response.text().catch(() => "");
 
   if (!response.ok) {
-    throw new Error(extractApiError(payload) || `Request failed (${response.status}).`);
+    const error = new Error(extractApiError(payload) || `Request failed (${response.status}).`);
+    error.status = response.status;
+    throw error;
   }
   return payload;
 }
@@ -83,25 +87,37 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
+  // Single-flight: parallel 401s after an expired access token must share one
+  // refresh call. Otherwise the losing calls re-use the same refresh cookie and
+  // the server (correctly) treats it as a stolen token, revoking the session.
   const refreshAccessToken = useCallback(async () => {
-    try {
-      const response = await fetch(`${API}/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-        headers: (() => {
-          const csrfToken = readCookie("expertai_csrf");
-          return csrfToken ? { "X-CSRF-Token": csrfToken } : undefined;
-        })(),
-      });
-      const data = await readResponse(response);
-      if (!data?.token) throw new Error("Refresh response did not include an access token.");
-      setToken(data.token);
-      localStorage.setItem("token", data.token);
-      return data.token;
-    } catch {
-      clearSession();
-      return null;
-    }
+    if (refreshInFlight) return refreshInFlight;
+    refreshInFlight = (async () => {
+      try {
+        const response = await fetch(`${API}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+          headers: (() => {
+            const csrfToken = readCookie("expertai_csrf");
+            return csrfToken ? { "X-CSRF-Token": csrfToken } : undefined;
+          })(),
+        });
+        const data = await readResponse(response);
+        if (!data?.token) throw new Error("Refresh response did not include an access token.");
+        setToken(data.token);
+        localStorage.setItem("token", data.token);
+        return data.token;
+      } catch (error) {
+        // Only a definitive 401 (revoked/expired session) signs the user out.
+        // Network failures and server hiccups (e.g. cold starts) keep the
+        // session so the next request can retry.
+        if (error?.status === 401) clearSession();
+        return null;
+      }
+    })().finally(() => {
+      refreshInFlight = null;
+    });
+    return refreshInFlight;
   }, [clearSession]);
 
   const apiCall = useCallback(async (endpoint, options = {}) => {
@@ -132,10 +148,10 @@ export function AuthProvider({ children }) {
     return readResponse(response);
   }, [refreshAccessToken, token]);
 
-  const signup = useCallback(async (email, password, name) => {
+  const signup = useCallback(async (email, password, name, role = "individual", extra = {}) => {
     const data = await apiCall("/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ email, password, name, role: "individual" }),
+      body: JSON.stringify({ email, password, name, role, ...extra }),
     });
     persistSession(data);
     return data;

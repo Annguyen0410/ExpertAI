@@ -7,6 +7,7 @@ import {
   ArrowRight, Send, User, FileText, RefreshCw, LogOut, Star
 } from "lucide-react";
 import { authorizedFetch } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 import ThemeToggle from "../../components/ThemeToggle";
 import DomainBadge from "../../components/DomainBadge";
 
@@ -19,6 +20,7 @@ function getToken() {
 
 export default function ProfessionalDashboard() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [escalations, setEscalations] = useState([]);
   const [available, setAvailable] = useState([]);
   const [stats, setStats] = useState(null);
@@ -90,8 +92,7 @@ export default function ProfessionalDashboard() {
   }
 
   function signOut() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    logout();
     router.push("/");
   }
 
@@ -201,7 +202,7 @@ export default function ProfessionalDashboard() {
                       esc.status === "resolved" ? "bg-financial/10 text-financial border-financial/25" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
                     }`}>{esc.status}</span>
                   </div>
-                  <p className="text-xs text-ink-3">Client: {esc.client_name || "Anonymous"}</p>
+                  <p className="text-xs text-ink-3">{new Date(esc.created_at).toLocaleDateString()}</p>
                 </div>
               ))}
             </div>
@@ -212,7 +213,7 @@ export default function ProfessionalDashboard() {
                   <h3 className="font-semibold mb-1">{selectedEsc.query_title}</h3>
                   <div className="flex items-center gap-2 text-xs text-ink-3 mb-4">
                     <DomainBadge domain={selectedEsc.domain} iconClassName="w-3.5 h-3.5" />
-                    <span>Client: {selectedEsc.client_name}</span>
+                    <span>Case opened {new Date(selectedEsc.created_at).toLocaleDateString()}</span>
                   </div>
 
                   <div className="bg-surface-2/60 rounded-xl p-4 mb-4 border border-line">

@@ -31,11 +31,13 @@ const statusStyles = {
   escalated: { label: "Escalated", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25", dot: "bg-amber-500" },
   processing: { label: "Processing", cls: "bg-primary/10 text-primary border-primary/25", dot: "bg-primary animate-pulse-soft" },
   pending: { label: "Pending", cls: "bg-ink-3/10 text-ink-2 border-line", dot: "bg-ink-3" },
+  closed: { label: "Closed", cls: "bg-ink-3/10 text-ink-2 border-line", dot: "bg-ink-3" },
+  failed: { label: "Failed", cls: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25", dot: "bg-rose-500" },
 };
 
 export default function Dashboard() {
   const router = useRouter();
-  const { refreshUser } = useAuth();
+  const { refreshUser, logout } = useAuth();
   const [user, setUser] = useState(null);
   const [queries, setQueries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,8 +115,7 @@ export default function Dashboard() {
   ];
 
   function signOut() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    logout();
     router.push("/");
   }
 
@@ -263,6 +264,8 @@ export default function Dashboard() {
               <option value="pending">Pending</option>
               <option value="processing">Processing</option>
               <option value="escalated">Escalated</option>
+              <option value="closed">Closed</option>
+              <option value="failed">Failed</option>
             </select>
           </div>
 

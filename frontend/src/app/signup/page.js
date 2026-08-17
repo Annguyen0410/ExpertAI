@@ -13,7 +13,7 @@ export default function SignUpPage() {
   const { signup } = useAuth();
   const toast = useToast();
   const showToast = toast?.addToast;
-  const [form, setForm] = useState({ email: "", password: "", name: "", role: "individual" });
+  const [form, setForm] = useState({ email: "", password: "", name: "", role: "individual", inviteCode: "", professionalTitle: "", professionalLicense: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,7 +49,14 @@ export default function SignUpPage() {
     setLoading(true);
     setError("");
     try {
-      await signup(form.email.trim().toLowerCase(), form.password, form.name.trim());
+      const professionalFields = form.role === "professional"
+        ? {
+            professional_invite_code: form.inviteCode.trim(),
+            professional_title: form.professionalTitle.trim(),
+            professional_license: form.professionalLicense.trim(),
+          }
+        : {};
+      await signup(form.email.trim().toLowerCase(), form.password, form.name.trim(), form.role, professionalFields);
       showToast?.("Account created successfully!", "success");
       router.push("/dashboard");
     } catch (err) {
@@ -142,9 +149,47 @@ export default function SignUpPage() {
                 <option value="professional">Professional (Lawyer/CPA/Doctor)</option>
               </select>
               {form.role === "professional" && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  Professional accounts require an invitation. You can create an individual account now and upgrade later.
-                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-ink-2 mb-1 block">Invite Code</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.inviteCode}
+                      onChange={(e) => setForm({ ...form, inviteCode: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Enter your professional invitation code"
+                      maxLength={100}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-ink-2 mb-1 block">Professional Title</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.professionalTitle}
+                      onChange={(e) => setForm({ ...form, professionalTitle: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="e.g. Attorney, CPA, Physician"
+                      maxLength={160}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-ink-2 mb-1 block">License Number</label>
+                    <input
+                      type="text"
+                      required
+                      value={form.professionalLicense}
+                      onChange={(e) => setForm({ ...form, professionalLicense: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl bg-surface-2 border border-line text-ink focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="State license or registration number"
+                      maxLength={160}
+                    />
+                  </div>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Professional accounts require a valid invitation code and are verified before the portal unlocks.
+                  </p>
+                </div>
               )}
             </div>
             <button

@@ -15,9 +15,10 @@ submission/
 ├── video/                              # Demo videos (working demo + full 3-min)
 ├── screenshots/                        # 7 product screenshots
 ├── revenue/
-│   ├── pnl.csv                         # Profit & Loss
+│   ├── Huynh Thien An Nguyen - Build with Gemini XPRIZE - PL Template - Template.csv  # Official P&L template, filled
+│   ├── Huynh Thien An Nguyen - Build with Gemini XPRIZE - PL Template - Template.pdf  # P&L as PDF
 │   ├── expense_disclosure.md           # Marketing/CAC disclosure (all $0, organic)
-│   └── (revenue evidence)              # See screenshots/06_stripe_revenue.png
+│   └── (revenue evidence)              # See screenshots/06_stripe_revenue.png / .pdf
 ├── customers/
 │   └── customer_list.csv               # Real paying customers
 ├── execution_logs/
@@ -35,8 +36,8 @@ submission/
 | Full 3-minute demo video | Done | `video/ExpertAI - Devpost Gemini Xprize - Huynh Thien An Nguyen.mp4` |
 | Product screenshots (7) | Done | `screenshots/` |
 | Narrative (500-1000 words) | Done | `narrative.md` |
-| Stripe revenue evidence | Done | `screenshots/06_stripe_revenue.png` + `revenue/pnl.csv` |
-| Simple P&L | Done | `revenue/pnl.csv` |
+| Stripe revenue evidence | Done | `screenshots/06_stripe_revenue.png` + `06_stripe_revenue.pdf` |
+| Simple P&L (official template) | Done | `revenue/Huynh Thien An Nguyen - Build with Gemini XPRIZE - PL Template - Template.csv` (+ .pdf) |
 | Marketing expense disclosure | Done (all $0, organic) | `revenue/expense_disclosure.md` |
 | Customer list | Done | `customers/customer_list.csv` |
 | Agent execution logs export | Done (21 logs) | `execution_logs/execution_logs_export.json` |

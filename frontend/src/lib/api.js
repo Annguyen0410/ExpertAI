@@ -41,22 +41,36 @@ function readCookie(name) {
   );
 }
 
+// Single-flight: several parallel 401s (e.g. dashboard loading after the access
+// token expired) must share ONE refresh. Without this, the losers re-use the
+// same refresh cookie, which the server treats as a stolen token and revokes
+// the whole session — signing the user out.
+let refreshInFlight = null;
+
 async function refreshAccessToken() {
-  try {
-    const csrfToken = readCookie("expertai_csrf");
-    const response = await fetch(`${API}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-      headers: csrfToken ? { "X-CSRF-Token": csrfToken } : undefined,
-    });
-    if (!response.ok) return null;
-    const data = await response.json().catch(() => null);
-    if (!data?.token) return null;
-    localStorage.setItem("token", data.token);
-    return data.token;
-  } catch {
-    return null;
-  }
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const csrfToken = readCookie("expertai_csrf");
+      const response = await fetch(`${API}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: csrfToken ? { "X-CSRF-Token": csrfToken } : undefined,
+      });
+      if (!response.ok) return { token: null, invalid: response.status === 401 };
+      const data = await response.json().catch(() => null);
+      if (!data?.token) return { token: null, invalid: false };
+      localStorage.setItem("token", data.token);
+      return { token: data.token, invalid: false };
+    } catch {
+      // Network failure (offline, server cold start): keep the session so a
+      // later request can retry instead of silently signing the user out.
+      return { token: null, invalid: false };
+    }
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
 }
 
 /**
@@ -77,9 +91,10 @@ export async function authorizedFetch(url, options = {}) {
   let response = await request(getToken());
   if (response.status === 401) {
     const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      response = await request(refreshed);
-    } else {
+    if (refreshed?.token) {
+      response = await request(refreshed.token);
+    } else if (refreshed?.invalid) {
+      // Only a definitive 401 from the refresh endpoint ends the session.
       localStorage.removeItem("token");
     }
   }

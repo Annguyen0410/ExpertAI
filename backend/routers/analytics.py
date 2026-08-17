@@ -22,11 +22,16 @@ bi_agent = BusinessIntelligenceAgent()
 
 
 def _overview(db: Session) -> dict:
-    total_queries = db.query(Query).count()
-    total_users = db.query(User).count()
+    # Batch the per-status counts into a single GROUP BY instead of one COUNT
+    # per status. Queries marked escalated never transition to "completed" (the
+    # router sets "escalated"/"closed" instead), so completed queries are by
+    # definition AI-resolved without a human.
+    status_rows = db.query(Query.status, func.count(Query.id)).group_by(Query.status).all()
+    status_counts = {status: count for status, count in status_rows}
+    total_queries = sum(status_counts.values())
+    total_completed = status_counts.get("completed", 0)
     total_escalations = db.query(Query).filter(Query.is_escalated.is_(True)).count()
-    total_completed = db.query(Query).filter(Query.status == "completed").count()
-    ai_resolved = max(0, total_completed - total_escalations)
+    total_users = db.query(User).count()
     paid_users = db.query(User).filter(User.subscription_active.is_(True)).count()
     revenue_total = db.query(func.sum(RevenueEvent.amount_cents)).scalar() or 0
     feedback_avg = db.query(func.avg(Feedback.rating)).scalar()
@@ -35,7 +40,7 @@ def _overview(db: Session) -> dict:
         "total_queries": total_queries,
         "total_users": total_users,
         "paid_users": paid_users,
-        "ai_resolution_rate": round((ai_resolved / total_queries * 100), 1) if total_queries else None,
+        "ai_resolution_rate": round((total_completed / total_queries * 100), 1) if total_queries else None,
         "total_escalations": total_escalations,
         "revenue_cents": revenue_total,
         "revenue_dollars": round(revenue_total / 100, 2),
@@ -168,23 +173,23 @@ def get_testimonials(
     _user: User = Depends(require_role([UserRole.admin])),
     db: Session = Depends(get_db),
 ):
-    testimonials = (
-        db.query(Feedback)
+    # Single joined query: loading the author per row used to run one extra
+    # query per testimonial (N+1).
+    rows = (
+        db.query(Feedback, User)
+        .join(User, User.id == Feedback.user_id)
         .filter(Feedback.is_testimonial.is_(True), Feedback.testimonial_text.is_not(None))
         .order_by(Feedback.created_at.desc())
         .limit(20)
         .all()
     )
-    result = []
-    for testimonial in testimonials:
-        user = db.query(User).filter(User.id == testimonial.user_id).first()
-        result.append(
-            {
-                "id": testimonial.id,
-                "user_name": user.name if user else "Anonymous",
-                "rating": testimonial.rating,
-                "testimonial_text": testimonial.testimonial_text,
-                "created_at": testimonial.created_at.isoformat(),
-            }
-        )
-    return result
+    return [
+        {
+            "id": feedback.id,
+            "user_name": user.name if user else "Anonymous",
+            "rating": feedback.rating,
+            "testimonial_text": feedback.testimonial_text,
+            "created_at": feedback.created_at.isoformat(),
+        }
+        for feedback, user in rows
+    ]

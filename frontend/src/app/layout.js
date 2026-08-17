@@ -15,10 +15,34 @@ const fraunces = Fraunces({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://expertai-io.onrender.com";
+
 export const metadata = {
-  title: "ExpertAI - Expert Guidance, 24/7 at 1/100th the Cost",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "ExpertAI - Expert Guidance, 24/7 at 1/100th the Cost",
+    template: "%s | ExpertAI",
+  },
   description:
     "World-class professional guidance across legal, financial, and medical domains. Powered by Google Cloud AI.",
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    siteName: "ExpertAI",
+    title: "ExpertAI - Professional Expertise, Democratized by AI",
+    description:
+      "Legal, financial, and medical information guidance through Gemini-powered AI agents, with human escalation for high-risk matters.",
+  },
+  twitter: {
+    card: "summary",
+    title: "ExpertAI - Professional Expertise, Democratized by AI",
+    description:
+      "Legal, financial, and medical information guidance through Gemini-powered AI agents.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({ children }) {

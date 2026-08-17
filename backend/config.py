@@ -219,6 +219,12 @@ def _email_set(value: str) -> set[str]:
 ADMIN_EMAILS = _email_set(os.getenv("ADMIN_EMAILS", ""))
 PROFESSIONAL_EMAILS = _email_set(os.getenv("PROFESSIONAL_EMAILS", ""))
 
+# Connection pool tuning for managed databases. Sane defaults for a
+# single-worker API on typical PaaS instances; raise when scaling out.
+DB_POOL_SIZE = _int_env("DB_POOL_SIZE", 5, minimum=1, maximum=100)
+DB_POOL_MAX_OVERFLOW = _int_env("DB_POOL_MAX_OVERFLOW", 10, minimum=0, maximum=200)
+DB_POOL_RECYCLE_SECONDS = _int_env("DB_POOL_RECYCLE_SECONDS", 1800, minimum=60, maximum=86400)
+
 B2C_PRICE_ID = os.getenv("B2C_PRICE_ID", "")
 B2B_PRICE_ID = os.getenv("B2B_PRICE_ID", "")
 B2C_PRICE = _int_env("B2C_PRICE", 1900, minimum=0, maximum=10_000_000)

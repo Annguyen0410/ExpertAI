@@ -190,8 +190,8 @@ export default function QueryDetail() {
   const meta = domainMeta(query.domain);
   const Icon = domainIcons[query.domain] || Bot;
   const complexity = typeof query.complexity_score === "number" ? Math.round(query.complexity_score * 100) : null;
-  const statusDot = query.status === "completed" ? "bg-emerald-500" : query.status === "escalated" ? "bg-amber-500" : "bg-primary animate-pulse-soft";
-  const statusLabel = query.status === "completed" ? "Completed" : query.status === "escalated" ? "Escalated" : query.status === "processing" ? "Processing" : "Pending";
+  const statusDot = query.status === "completed" ? "bg-emerald-500" : query.status === "escalated" ? "bg-amber-500" : query.status === "failed" ? "bg-rose-500" : query.status === "closed" ? "bg-ink-3" : "bg-primary animate-pulse-soft";
+  const statusLabel = query.status === "completed" ? "Completed" : query.status === "escalated" ? "Escalated" : query.status === "processing" ? "Processing" : query.status === "closed" ? "Closed" : query.status === "failed" ? "Failed" : "Pending";
 
   return (
     <div className="min-h-screen bg-bg text-ink">

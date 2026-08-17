@@ -8,23 +8,44 @@ from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from config import DATABASE_URL
+from config import (
+    DATABASE_URL,
+    DB_POOL_MAX_OVERFLOW,
+    DB_POOL_RECYCLE_SECONDS,
+    DB_POOL_SIZE,
+)
 
 logger = logging.getLogger(__name__)
 
 _is_sqlite = DATABASE_URL.startswith("sqlite")
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if _is_sqlite else {},
-    pool_pre_ping=True,
-)
+if _is_sqlite:
+    # Local development: a single SQLite file with WAL gives concurrent readers
+    # and a busy-timeout instead of immediate "database is locked" errors when
+    # several requests run at once.
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
+    )
+else:
+    # Managed databases: bounded pool so a busy API never exhausts the server's
+    # connection limit, with pre-ping and recycling to survive restarts.
+    engine = create_engine(
+        DATABASE_URL,
+        pool_pre_ping=True,
+        pool_size=DB_POOL_SIZE,
+        max_overflow=DB_POOL_MAX_OVERFLOW,
+        pool_recycle=DB_POOL_RECYCLE_SECONDS,
+    )
 
 
 if _is_sqlite:
     @event.listens_for(engine, "connect")
-    def _enable_sqlite_foreign_keys(dbapi_connection, _connection_record):
+    def _configure_sqlite_connection(dbapi_connection, _connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA busy_timeout=5000")
         cursor.close()
 
 

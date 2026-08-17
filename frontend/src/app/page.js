@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight, Check, Bot, Users,
   TrendingUp, Shield, Cpu, Activity, FileText,
-  ChevronRight, BarChart3, TriangleAlert, Sparkles, Star
+  ChevronRight, BarChart3, TriangleAlert, Sparkles
 } from "lucide-react";
 import Logo from "../components/Logo";
 import ThemeToggle from "../components/ThemeToggle";
@@ -28,8 +28,6 @@ export default function Home() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
-  // Public pages deliberately do not request account-only testimonial or analytics data.
-  const testimonials = [];
 
   function beginSignup() {
     const normalizedEmail = email.trim().toLowerCase();
@@ -277,30 +275,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {testimonials.length > 0 && (
-        <section className="px-6 py-20 border-t border-line bg-surface/50">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="font-display text-3xl md:text-4xl font-semibold">What Users Say</h2>
-              <p className="text-ink-2 mt-4 text-lg">Real feedback from ExpertAI users.</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {testimonials.slice(0, 3).map((t) => (
-                <div key={t.id} className="bg-surface rounded-2xl p-6 border border-line">
-                  <div className="flex items-center gap-1 mb-3">
-                    {[1,2,3,4,5].map((star) => (
-                      <Star key={star} className={`w-4 h-4 ${star <= t.rating ? "text-financial fill-current" : "text-ink-3"}`} />
-                    ))}
-                  </div>
-                  <p className="text-sm text-ink-2 mb-3 leading-relaxed">&ldquo;{(t.testimonial_text || "").substring(0, 200)}&rdquo;</p>
-                  <p className="text-xs text-ink-3">{t.user_name}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className="px-6 py-20 border-t border-line">
         <div className="max-w-6xl mx-auto text-center">

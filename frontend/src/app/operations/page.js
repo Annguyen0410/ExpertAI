@@ -8,6 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, RefreshCw, LogOut, Star
 } from "lucide-react";
 import { authorizedFetch } from "../../lib/api";
+import { useAuth } from "../../context/AuthContext";
 import ThemeToggle from "../../components/ThemeToggle";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -19,6 +20,7 @@ function getToken() {
 
 export default function OperationsDashboard() {
   const router = useRouter();
+  const { logout } = useAuth();
   const [overview, setOverview] = useState(null);
   const [agentLogs, setAgentLogs] = useState([]);
   const [revenue, setRevenue] = useState(null);
@@ -66,8 +68,7 @@ export default function OperationsDashboard() {
   }
 
   function signOut() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    logout();
     router.push("/");
   }
 
@@ -141,8 +142,8 @@ export default function OperationsDashboard() {
               ) : agentLogs.map((log) => (
                 <div key={log.id} className="flex items-start gap-3 p-3 rounded-xl bg-surface-2/60 text-sm">
                   <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
-                    log.decision?.startsWith("ESCALATE") ? "bg-amber-500" :
-                    log.decision === "AI_RESOLVED" || log.decision === "AI_RESPONDED" ? "bg-emerald-500" : "bg-legal"
+                    log.decision?.toLowerCase().startsWith("escalate") || log.decision === "human_review_required" ? "bg-amber-500" :
+                    log.decision === "response_available" || log.decision === "next_steps_generated" ? "bg-emerald-500" : "bg-legal"
                   }`} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -151,8 +152,8 @@ export default function OperationsDashboard() {
                     </div>
                     <div className="flex items-center gap-3 text-xs text-ink-3 mt-1">
                       <span className="text-primary font-mono">{log.decision}</span>
-                      {log.confidence_score && <span>{(log.confidence_score * 100).toFixed(0)}% confidence</span>}
-                      {log.execution_time_ms && <span>{log.execution_time_ms}ms</span>}
+                      {log.confidence_score != null && <span>{(log.confidence_score * 100).toFixed(0)}% confidence</span>}
+                      {log.execution_time_ms != null && <span>{log.execution_time_ms}ms</span>}
                     </div>
                   </div>
                 </div>

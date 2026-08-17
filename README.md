@@ -73,6 +73,10 @@ We started with a single principle: **accountability**. The architecture reflect
 - File upload validation and document metadata/analysis workflow
 - Subscription-ready Stripe checkout and verified webhook integration
 - Next.js dashboard, query workspace, operations view, professional queue, and account settings
+- Single-flight session refresh: parallel requests share one token rotation, and transient failures never drop an authenticated user
+- Connection pooling (managed databases), SQLite WAL mode for local development, and composite indexes on every hot query path
+- Security headers, trusted-host/CORS allow-lists, per-route rate limiting, and CSRF-guarded cookie refresh
+- SEO routes (`robots.txt`, `sitemap.xml`) and OpenGraph metadata on the public site
 
 ---
 
@@ -232,6 +236,16 @@ Compose persists its local SQLite database under `./data`. For production, provi
 
 ---
 
+## Performance & Reliability
+
+ExpertAI is built to keep working as usage grows:
+
+- **Database:** composite indexes on every hot query path (queries per user, messages per query, escalations by professional, execution logs per query, active refresh tokens), connection pooling with pre-ping/recycle for managed Postgres, and WAL + busy-timeout for the SQLite development database.
+- **Sessions:** refresh tokens rotate on every use with reuse detection (30s grace for benign parallel races, family revocation afterwards). The frontend collapses concurrent 401 retries into a single refresh, so returning users are never silently signed out.
+- **AI budget:** per-model rate budgets (requests/minute and requests/day) enforced locally, with automatic failover across candidate Gemini models and one-time pruning of models the API key cannot use.
+- **Protection:** per-route rate limiting, strict CORS/trusted-host allow-lists, sanitization of all untrusted input, security headers, and no-store caching on every API response.
+- **Frontend:** static prerendering of public pages, skeleton loading states, IntersectionObserver-based reveal animations, and a `robots.txt`/`sitemap.xml` that keep authenticated routes out of search indexes.
+
 ## Verification
 
 Run the API checks and frontend checks after making changes:
@@ -308,9 +322,10 @@ submission/
 │   ├── 06_stripe_revenue.png         # Stripe Dashboard revenue export
 │   └── 07_database_schema.png        # Key tables: queries, execution_logs, escalations
 ├── revenue/
-│   ├── stripe_export.json            # Stripe Dashboard export (payments, subscriptions)
-│   ├── pnl.csv                       # Simple P&L: revenue, COGS, marketing, hosting, API costs
-│   └── expense_disclosure.md         # Marketing/customer acquisition spend (required even if $0)
+│   ├── Huynh Thien An Nguyen - Build with Gemini XPRIZE - PL Template - Template.csv  # Official P&L template, filled
+│   ├── Huynh Thien An Nguyen - Build with Gemini XPRIZE - PL Template - Template.pdf  # P&L as PDF
+│   ├── expense_disclosure.md         # Marketing/customer acquisition spend (required even if $0)
+│   └── (Stripe revenue evidence)     # See screenshots/06_stripe_revenue.png + .pdf
 ├── customers/
 │   ├── customer_list.csv             # Name, email, phone (with permission)
 │   └── testimonials/                 # Written feedback/screenshots from customers
