@@ -1,11 +1,22 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "../lib/theme";
 
 export default function ThemeToggle({ className = "" }) {
   const { theme, toggleTheme } = useTheme();
-  const isDark = theme === "dark";
+  // The server always renders the light state. Reading the user's stored or
+  // system theme on the first client render would mismatch that HTML and trip
+  // React's hydration error, so the icon/label stay server-identical until the
+  // component has mounted.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isDark = mounted && theme === "dark";
 
   return (
     <button
