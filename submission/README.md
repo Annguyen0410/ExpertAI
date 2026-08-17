@@ -12,7 +12,7 @@ ExpertAI is a conversational AI platform that delivers professional-grade legal,
 ```
 submission/
 ├── narrative.md                        # 500-1000 word narrative
-├── video/                              # 3-minute demo video
+├── video/                              # Demo videos (working demo + full 3-min)
 ├── screenshots/                        # 7 product screenshots
 ├── revenue/
 │   ├── pnl.csv                         # Profit & Loss
@@ -31,7 +31,8 @@ submission/
 
 | Requirement | Status | Location |
 |-------------|--------|----------|
-| 3-minute demo video | Done | `video/ExpertAI - Devpost Gemini Xprize - Huynh Thien An Nguyen.mp4` |
+| Demo video (how it works) | Done | `video/Video ExpertAI Working.mp4` (embedded at top of root README) |
+| Full 3-minute demo video | Done | `video/ExpertAI - Devpost Gemini Xprize - Huynh Thien An Nguyen.mp4` |
 | Product screenshots (7) | Done | `screenshots/` |
 | Narrative (500-1000 words) | Done | `narrative.md` |
 | Stripe revenue evidence | Done | `screenshots/06_stripe_revenue.png` + `revenue/pnl.csv` |

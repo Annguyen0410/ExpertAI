@@ -8,6 +8,16 @@ ExpertAI makes professional information more accessible through a Gemini-powered
 
 ---
 
+## Demo — How It Works
+
+Watch the product in action. A real query flows through the full pipeline: **triage → specialist agent → auditable execution trail → human escalation when needed**.
+
+<video src="submission/video/Video%20ExpertAI%20Working.mp4" controls="controls" style="max-width: 100%; border-radius: 8px;"></video>
+
+*Working demo (~1 minute). If the player does not render, [download the video](submission/video/Video%20ExpertAI%20Working.mp4) or watch the full 3-minute demo in [`/submission/video/`](submission/video/).*
+
+---
+
 ## The Problem
 
 Legal, financial, and medical information is expensive, slow, and rarely available when people need it most. A tenant facing a lease at 11pm, a freelancer doing first-time taxes, or a patient preparing for an appointment has no affordable on-ramp — and professionals drown in repetitive intake work.
@@ -37,7 +47,7 @@ AI does the routine knowledge work. Humans hold the judgment: professionals revi
 
 ### Business Model and Revenue
 
-ExpertAI sells two subscriptions: Individual ($19/mo) and Professional ($99/mo), collected through live Stripe checkout with verified webhooks. As of submission: **[X] total revenue, [Y] active paying customers, [Z]% AI resolution rate, [W]/5 average rating** (full revenue evidence, P&L, and marketing-expense disclosure are attached in `/submission`). Operations live at **[production URL]**.
+ExpertAI sells two subscriptions: Individual ($19/mo) and Professional ($99/mo), collected through live Stripe checkout with verified webhooks. As of submission: **$19 in realized revenue, 1 paying customer, 86% AI execution completion rate** (full revenue evidence, P&L, and marketing-expense disclosure are attached in `/submission`). Operations live at [https://expertai-io.onrender.com](https://expertai-io.onrender.com).
 
 ### Jobs and Economic Opportunity
 
@@ -141,7 +151,7 @@ ExpertAI Devpost/
 │
 ├── submission/                 # Hackathon submission evidence (THIS FOLDER)
 │   ├── README.md              # Submission evidence index
-│   ├── video/                 # 3-minute demo video
+│   ├── video/                 # Demo videos (working demo + full 3-min)
 │   ├── screenshots/           # Product evidence screenshots
 │   ├── revenue/               # Stripe exports, P&L, expense disclosure
 │   ├── customers/             # Customer evidence (with permission)
@@ -264,7 +274,7 @@ ExpertAI is designed for the **Professional Services Access** category: routine 
 
 - [x] GitHub repo shared with `testing@devpost.com` AND `judging@hacker.fund`
 - [x] Repo is clean (no `.env`, secrets, local DB `expertai.db`)
-- [x] 3-minute video demonstrating live AI agent execution (`/submission/video/`)
+- [x] Demo video demonstrating live AI agent execution (`submission/video/Video ExpertAI Working.mp4` — embedded above; full 3-min version in `/submission/video/`)
 - [x] Written narrative (this README) — 500–1000 words on AI operations, human roles, economic impact
 - [x] Revenue evidence: Stripe dashboard export (`/submission/revenue/`)
 - [x] Simple P&L with marketing/customer acquisition spend disclosure (`/submission/revenue/`)
@@ -287,7 +297,8 @@ ExpertAI is designed for the **Professional Services Access** category: routine 
 submission/
 ├── README.md                    # This index file
 ├── video/
-│   └── expert_ai_demo.mp4       # 3-min demo: query → triage → specialist → execution trace → escalation → professional portal
+│   ├── Video ExpertAI Working.mp4                 # Working demo (embedded at top of README)
+│   └── ExpertAI - Devpost Gemini Xprize - Huynh Thien An Nguyen.mp4  # Full 3-min demo: query → triage → specialist → execution trace → escalation → professional portal
 ├── screenshots/
 │   ├── 01_triage_result.png          # TriageAgent classification output
 │   ├── 02_specialist_response.png    # Legal/Financial/Medical agent response
